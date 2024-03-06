@@ -5,15 +5,16 @@ from sqlalchemy import and_, func
 from sqlalchemy.orm import Session, Query
 
 from ..models import Entry, HiddenEntry
+from ...dtypes.coordinate import Coordinate
 
 
 def calc_distance(longitude, latitude):
     d_lat = Entry.latitude - latitude
     d_lon = Entry.longitude - longitude
 
-    a = func.pow(func.sin(d_lat / 2.0), 2) + func.pow(
-        func.sin(d_lon / 2.0), 2
-    ) * func.cos(latitude) * func.cos(Entry.latitude)
+    a = func.pow(func.sin(d_lat / 2.0), 2) + func.pow(func.sin(d_lon / 2.0), 2) * func.cos(latitude) * func.cos(
+        Entry.latitude
+    )
     dist = 6378.388 * 2.0 * func.atan2(func.sqrt(a), func.sqrt(1.0 - a))
 
     return dist
@@ -23,7 +24,7 @@ def get_entries(
     db: Session,
     user_id: uuid.UUID | None = None,
     owner_id: uuid.UUID | None = None,
-    coord: tuple[float, float] | None = None,  # Todo: Dataclass
+    coordinate: Coordinate | None = None,  # Todo: Dataclass
     skip: int | None = None,
     limit: int | None = None,
 ) -> list[Entry]:
@@ -43,8 +44,8 @@ def get_entries(
         )
         query = query.filter(HiddenEntry.entry_id == None)  # noqa: E711
 
-    if coord:
-        query = query.order_by(calc_distance(coord[0], coord[1]))
+    if coordinate:
+        query = query.order_by(calc_distance(coordinate.longitude, coordinate.latitude))
 
     if skip is not None:
         query = query.offset(skip)
@@ -97,11 +98,7 @@ def delete_entry(db: Session, entry_id: uuid.UUID, user_id=uuid.UUID) -> None:
         db.commit()
         return None
 
-    hidden_entry = (
-        db.query(HiddenEntry)
-        .filter_by(entry_id=entry.id, user_id=user_id)
-        .first()
-    )
+    hidden_entry = db.query(HiddenEntry).filter_by(entry_id=entry.id, user_id=user_id).first()
 
     if hidden_entry:
         return None
