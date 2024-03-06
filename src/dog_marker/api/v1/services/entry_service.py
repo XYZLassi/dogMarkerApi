@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
 
-from dog_maker.database.cruds import entry_crude
+from dog_marker.database.cruds import entry_crude
 
 
 def get_entry(

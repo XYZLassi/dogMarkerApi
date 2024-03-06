@@ -1,6 +1,6 @@
 from starlette.middleware.cors import CORSMiddleware
 
-from dog_maker import create_app
+from dog_marker import create_app
 
 origins = ["*"]
 

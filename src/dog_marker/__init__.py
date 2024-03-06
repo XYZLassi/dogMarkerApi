@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from dog_maker.database.base import create_db_and_tables
+from dog_marker.database.base import create_db_and_tables
 
 
 def create_app() -> FastAPI:

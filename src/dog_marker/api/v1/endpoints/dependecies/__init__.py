@@ -1,6 +1,6 @@
 __all__ = ["get_db"]
 
-from dog_maker.database.base import SessionLocal
+from dog_marker.database.base import SessionLocal
 
 
 def get_db() -> SessionLocal:
