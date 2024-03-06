@@ -5,7 +5,8 @@ from sqlalchemy import and_, func
 from sqlalchemy.orm import Session, Query
 
 from ..models import Entry, HiddenEntry
-from ...dtypes.coordinate import Coordinate
+from ..errors import DbNotFoundError
+from dog_marker.dtypes.coordinate import Coordinate
 
 
 def calc_distance(longitude, latitude):
@@ -18,6 +19,14 @@ def calc_distance(longitude, latitude):
     dist = 6378.388 * 2.0 * func.atan2(func.sqrt(a), func.sqrt(1.0 - a))
 
     return dist
+
+
+def get_entry(db: Session, entry_id: uuid.UUID) -> Entry:
+    # noinspection PyTypeChecker
+    result: Entry = db.query(Entry).filter_by(id=entry_id, mark_to_delete=False).first()
+    if result is None:
+        raise DbNotFoundError(f"Cannot find entry with id {entry_id}")
+    return result
 
 
 def get_entries(
@@ -82,10 +91,6 @@ def create_entry(
     db.commit()
 
     return new_entry
-
-
-def get_entry(db: Session, entry_id: uuid.UUID) -> Entry | None:
-    return db.query(Entry).filter_by(id=entry_id, mark_to_delete=False).first()
 
 
 def delete_entry(db: Session, entry_id: uuid.UUID, user_id=uuid.UUID) -> None:

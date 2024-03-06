@@ -1,23 +1,20 @@
-from uuid import UUID
 from typing import Iterable
+from uuid import UUID
 
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from dog_marker.dtypes.coordinate import Coordinate
-from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
-
 from dog_marker.database.cruds import entry_crude
+from dog_marker.dtypes.coordinate import Coordinate
+from ..errors import NotAuthorizedError
+from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
 
 
 class EntryService:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_entry(self, entry_id: UUID, owner_id: UUID | None = None) -> EntrySchema | None:
+    def get_entry(self, entry_id: UUID, owner_id: UUID | None = None) -> EntrySchema:
         entry = entry_crude.get_entry(self.db, entry_id)
-        if entry is None:
-            return None
 
         result = EntrySchema.from_orm(entry)
         result.is_owner = entry.user_id == owner_id
@@ -58,10 +55,9 @@ class EntryService:
 
     def update_entry(self, entry_id: UUID, user_id: UUID, update_entry: UpdateEntrySchema) -> EntrySchema:
         old_entry = entry_crude.get_entry(self.db, entry_id)
-        if old_entry is None:
-            raise HTTPException(status_code=404, detail="Entry not found")
-        elif old_entry.user_id != user_id:
-            raise HTTPException(status_code=401, detail="User not authorized")
+
+        if old_entry.user_id != user_id:
+            raise NotAuthorizedError()
 
         entry = entry_crude.update_entry(self.db, entry_id, **update_entry.dict())
 
