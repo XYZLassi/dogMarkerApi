@@ -1,139 +1,132 @@
-import uuid
 from datetime import datetime
+from uuid import UUID
 
-from sqlalchemy import and_, func
+from typing import Iterable, Protocol
+
+from sqlalchemy import and_, desc
 from sqlalchemy.orm import Session, Query
 
-from ..models import Entry, HiddenEntry
+from dog_marker.dtypes.coordinate import Coordinate, Longitude, Latitude
 from ..errors import DbNotFoundError
-from dog_marker.dtypes.coordinate import Coordinate
+from ..models import EntryDbModel, HiddenEntry
+from ..models.schemas.entry import Entry
 
 
-def calc_distance(longitude, latitude):
-    d_lat = Entry.latitude - latitude
-    d_lon = Entry.longitude - longitude
-
-    a = func.pow(func.sin(d_lat / 2.0), 2) + func.pow(func.sin(d_lon / 2.0), 2) * func.cos(latitude) * func.cos(
-        Entry.latitude
-    )
-    dist = 6378.388 * 2.0 * func.atan2(func.sqrt(a), func.sqrt(1.0 - a))
-
-    return dist
+class CreateEntryProtocol(Protocol):
+    id: UUID | None
+    title: str
+    longitude: Longitude
+    latitude: Latitude
+    description: str | None
+    image_path: str | None
+    create_date: datetime | None
 
 
-def get_entry(db: Session, entry_id: uuid.UUID) -> Entry:
-    # noinspection PyTypeChecker
-    result: Entry = db.query(Entry).filter_by(id=entry_id, mark_to_delete=False).first()
-    if result is None:
-        raise DbNotFoundError(f"Cannot find entry with id {entry_id}")
-    return result
+class UpdateEntryProtocol(Protocol):
+    title: str
+    longitude: Longitude
+    latitude: Latitude
+    description: str | None
+    image_path: str | None
 
 
-def get_entries(
-    db: Session,
-    user_id: uuid.UUID | None = None,
-    owner_id: uuid.UUID | None = None,
-    coordinate: Coordinate | None = None,  # Todo: Dataclass
-    skip: int | None = None,
-    limit: int | None = None,
-) -> list[Entry]:
-    query: Query[Entry] = db.query(Entry)
-    query = query.filter_by(mark_to_delete=False)
+class EntryCRUD:
+    def __init__(self, db: Session):
+        self.db = db
 
-    if owner_id is not None:
-        query = query.filter(Entry.user_id == owner_id)
-    elif user_id is not None:
-        query = query.join(
-            HiddenEntry,
-            onclause=and_(
-                HiddenEntry.entry_id == Entry.id,
-                HiddenEntry.user_id == user_id,
-            ),
-            isouter=True,
+    def __get(self, entry_id: UUID) -> EntryDbModel:
+        # noinspection PyTypeChecker
+        result: EntryDbModel = self.db.query(EntryDbModel).filter_by(id=entry_id, mark_to_delete=False).first()
+        if result is None:
+            raise DbNotFoundError(f"Cannot find entry with id {entry_id}")
+        return result
+
+    def get(self, entry_id: UUID) -> Entry:
+        entry = self.__get(entry_id)
+        return entry.to_schema()
+
+    def all(
+        self,
+        user_id: UUID | None = None,
+        owner_id: UUID | None = None,
+        coordinate: Coordinate | None = None,
+        skip: int | None = None,
+        limit: int | None = None,
+    ) -> Iterable[Entry]:
+        # noinspection PyTypeChecker
+        query: Query[EntryDbModel] = self.db.query(EntryDbModel)
+        query = query.filter_by(mark_to_delete=False)
+
+        if owner_id is not None:
+            query = query.filter(EntryDbModel.user_id == owner_id)
+        elif user_id is not None:
+            query = query.join(
+                HiddenEntry,
+                onclause=and_(
+                    HiddenEntry.entry_id == EntryDbModel.id,
+                    HiddenEntry.user_id == user_id,
+                ),
+                isouter=True,
+            )
+            # noinspection PyTypeChecker
+            query = query.filter(HiddenEntry.entry_id == None)  # noqa: E711
+
+        if coordinate:
+            query = query.order_by(desc(EntryDbModel.calc_distance(coordinate.longitude, coordinate.latitude)))
+
+        if skip is not None:
+            query = query.offset(skip)
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        for entry in query.all():
+            yield entry.to_schema()
+
+    def create(self, user_id: UUID, data: CreateEntryProtocol) -> Entry:
+        new_entry = EntryDbModel(
+            id=data.id,
+            user_id=user_id,
+            title=data.title,
+            description=data.description,
+            image_path=data.image_path,
+            longitude=data.longitude,
+            latitude=data.latitude,
+            create_date=data.create_date,
         )
-        query = query.filter(HiddenEntry.entry_id == None)  # noqa: E711
 
-    if coordinate:
-        query = query.order_by(calc_distance(coordinate.longitude, coordinate.latitude))
+        self.db.add(new_entry)
+        self.db.commit()
 
-    if skip is not None:
-        query = query.offset(skip)
+        return new_entry.to_schema()
 
-    if limit is not None:
-        query = query.limit(limit)
+    def update(self, entry_id: UUID, data: UpdateEntryProtocol) -> Entry:
+        entry = self.__get(entry_id)
 
-    return query.all()
+        entry.title = data.title
+        entry.longitude = data.longitude
+        entry.latitude = data.latitude
+        entry.description = data.description
+        entry.image_path = data.image_path
+        self.db.commit()
 
+        return entry.to_schema()
 
-def create_entry(
-    db: Session,
-    user_id: uuid.UUID,
-    title: str,
-    longitude: float,
-    latitude: float,
-    id: uuid.UUID | None = None,
-    description: str | None = None,
-    image_path: str | None = None,
-    create_date: datetime | None = None,
-) -> Entry:
-    new_entry = Entry(
-        id=id,
-        user_id=user_id,
-        title=title,
-        description=description,
-        image_path=image_path,
-        longitude=longitude,
-        latitude=latitude,
-        create_date=create_date,
-    )
+    def delete(self, entry_id: UUID, user_id: UUID) -> bool:
+        entry = self.__get(entry_id)
 
-    db.add(new_entry)
-    db.commit()
+        if entry.user_id == user_id:
+            entry.mark_to_delete = True
+            self.db.commit()
+            return True
 
-    return new_entry
+        hidden_entry = self.db.query(HiddenEntry).filter_by(entry_id=entry.id, user_id=user_id).first()
 
+        if hidden_entry:
+            return True
 
-def delete_entry(db: Session, entry_id: uuid.UUID, user_id=uuid.UUID) -> None:
-    entry = get_entry(db, entry_id)
-    if not entry:
-        return None
+        hidden_entry = HiddenEntry(entry_id=entry.id, user_id=user_id)
+        self.db.add(hidden_entry)
+        self.db.commit()
 
-    if entry.user_id == user_id:
-        entry.mark_to_delete = True
-        db.commit()
-        return None
-
-    hidden_entry = db.query(HiddenEntry).filter_by(entry_id=entry.id, user_id=user_id).first()
-
-    if hidden_entry:
-        return None
-
-    hidden_entry = HiddenEntry(entry_id=entry.id, user_id=user_id)
-    db.add(hidden_entry)
-    db.commit()
-
-    return None
-
-
-def update_entry(
-    db: Session,
-    entry_id: uuid.UUID,
-    title: str,
-    longitude: float,
-    latitude: float,
-    description: str | None = None,
-    image_path: str | None = None,
-) -> Entry | None:
-    entry = get_entry(db, entry_id)
-
-    if not entry:
-        return None
-
-    entry.title = title
-    entry.longitude = longitude
-    entry.latitude = latitude
-    entry.description = description
-    entry.image_path = image_path
-    db.commit()
-
-    return entry
+        return True

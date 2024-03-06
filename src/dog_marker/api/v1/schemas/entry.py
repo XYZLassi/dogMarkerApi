@@ -1,14 +1,16 @@
-import uuid
-from typing import Optional
+from __future__ import annotations
+
+from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel, Field
-from datetime import datetime
 
+from dog_marker.database.models.schemas import Entry
 from dog_marker.dtypes.coordinate import Longitude, Latitude
 
 
-class EntrySchema(BaseModel):
-    id: uuid.UUID
+class EntryApiSchema(BaseModel):
+    id: UUID
     title: str
     description: str | None
     image_path: str | None
@@ -18,24 +20,24 @@ class EntrySchema(BaseModel):
     update_date: datetime
     is_owner: bool = False
 
-    class Config:
-        from_attributes = True
-        orm_mode = True
+    @staticmethod
+    def from_db(entry: Entry) -> EntryApiSchema:
+        return EntryApiSchema(**entry.dict())
 
 
-class CreateEntrySchema(BaseModel):
-    id: Optional[uuid.UUID] = Field(None)
+class CreateEntryApiSchema(BaseModel):
+    id: UUID | None = Field(None)
     title: str
-    description: Optional[str] = Field(None)
-    image_path: Optional[str] = Field(None)
+    description: str | None = Field(None)
+    image_path: str | None = Field(None)
     longitude: Longitude
     latitude: Latitude
-    create_date: Optional[datetime] = Field(None)
+    create_date: datetime | None = Field(None)
 
 
-class UpdateEntrySchema(BaseModel):
+class UpdateEntryApiSchema(BaseModel):
     title: str
-    description: Optional[str] = Field(None)
-    image_path: Optional[str] = Field(None)
+    description: str | None = Field(None)
+    image_path: str | None = Field(None)
     longitude: Longitude
     latitude: Latitude

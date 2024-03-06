@@ -5,13 +5,13 @@ from fastapi import APIRouter, Depends
 
 from dog_marker.dtypes.coordinate import Coordinate
 from .dependecies import get_service, query_coordinate
-from ..schemas import EntrySchema
+from ..schemas import EntryApiSchema
 from ..services import EntryService
 
 router = APIRouter()
 
 
-@router.get("/", response_model=list[EntrySchema])
+@router.get("/", response_model=list[EntryApiSchema])
 async def get_all_entries(
     user_id: UUID | None = None,
     skip: int | None = 0,
@@ -19,11 +19,11 @@ async def get_all_entries(
     coordinate: Coordinate | None = Depends(query_coordinate),
     entry_service: EntryService = Depends(get_service(EntryService)),
 ):
-    entries = entry_service.get_entries(user_id=user_id, coordinate=coordinate, skip=skip, limit=limit)
+    entries = entry_service.all(user_id=user_id, coordinate=coordinate, skip=skip, limit=limit)
     return entries
 
 
-@router.get("/{entry_id}", response_model=Optional[EntrySchema])
+@router.get("/{entry_id}", response_model=Optional[EntryApiSchema])
 async def get_entry_by_id(entry_id: UUID, entry_service: EntryService = Depends(get_service(EntryService))):
-    entry = entry_service.get_entry(entry_id)
+    entry = entry_service.get(entry_id)
     return entry

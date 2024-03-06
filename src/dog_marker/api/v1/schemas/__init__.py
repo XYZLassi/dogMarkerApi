@@ -1,3 +1,3 @@
-__all__ = ["EntrySchema", "CreateEntrySchema", "UpdateEntrySchema"]
+__all__ = ["EntryApiSchema", "CreateEntryApiSchema", "UpdateEntryApiSchema"]
 
-from .entry import EntrySchema, CreateEntrySchema, UpdateEntrySchema
+from .entry import EntryApiSchema, CreateEntryApiSchema, UpdateEntryApiSchema

@@ -1,4 +1,4 @@
-__all__ = ["Entry", "HiddenEntry"]
+__all__ = ["EntryDbModel", "HiddenEntry"]
 
-from .entry import Entry
+from .entry import EntryDbModel
 from .hidden_entry import HiddenEntry
