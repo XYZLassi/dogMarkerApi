@@ -8,3 +8,7 @@ class Config:
 
 class DevelopConfig(Config):
     pass
+
+
+class TestConfig(Config):
+    DATABASE_URL = "sqlite:///:memory:"
