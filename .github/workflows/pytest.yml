@@ -1,4 +1,4 @@
-name: Pytest
+name: PyTest
 
 on: [push]
 
@@ -23,4 +23,4 @@ jobs:
           pip install pytest pytest-cov
       - name: Test with pytest
         run: |
-          pytest test/
+          pytest --no-header --no-summary test/
