@@ -3,6 +3,7 @@ fastapi~=0.110
 uvicorn~=0.27
 pydantic~=2.6
 typing_extensions~=4.10
+starlette~=0.36.3
 
 # Database
 SQLAlchemy==2.0.28

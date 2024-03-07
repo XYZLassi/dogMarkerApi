@@ -1,11 +1,15 @@
-from fastapi import FastAPI
-from dog_marker.database.base import create_db_and_tables
+from fastapi import FastAPI, Request, Response
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from .configs import Config
+from .database.base import Base
 
 
-def create_app() -> FastAPI:
+def create_app(config: Config = Config()) -> FastAPI:
     app = FastAPI(title="DogMarker - API")
 
-    bind_events(app)
+    bind_db(app, config)
 
     from .api.v1 import api_v1
 
@@ -14,7 +18,22 @@ def create_app() -> FastAPI:
     return app
 
 
-def bind_events(app: FastAPI) -> None:
+def bind_db(app: FastAPI, config: Config) -> None:
+    engine = create_engine(config.DATABASE_URL, connect_args={"check_same_thread": False})
+
+    session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
     @app.on_event("startup")
     def on_startup() -> None:
-        create_db_and_tables()
+        if config.CREATE_DB:
+            Base.metadata.create_all(bind=engine)
+
+    @app.middleware("http")
+    async def db_session_middleware(request: Request, call_next):
+        response = Response("Internal server error", status_code=500)
+        try:
+            request.state.db = session_local()
+            response = await call_next(request)
+        finally:
+            request.state.db.close()
+        return response

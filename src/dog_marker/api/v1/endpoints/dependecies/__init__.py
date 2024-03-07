@@ -1,9 +1,8 @@
 __all__ = ["get_db", "get_service", "query_coordinate"]
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from dog_marker.database.base import SessionLocal
 from typing import TypeVar, Callable
 
 from dog_marker.dtypes.coordinate import Longitude, Latitude, Coordinate
@@ -11,12 +10,8 @@ from dog_marker.dtypes.coordinate import Longitude, Latitude, Coordinate
 T = TypeVar("T")
 
 
-def get_db() -> Session:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+def get_db(request: Request) -> Session:
+    return request.state.db
 
 
 def get_service(service: Callable[[Session], T]) -> Callable[[], T]:
