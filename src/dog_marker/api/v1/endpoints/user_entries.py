@@ -1,7 +1,7 @@
 from typing import Iterable
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from .dependecies import get_service
 from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
@@ -10,7 +10,7 @@ from ..services import EntryService
 router = APIRouter()
 
 
-@router.get("/{user_id}/entries", response_model=list[EntrySchema])
+@router.get("/{user_id}/entries", response_model=list[EntrySchema], operation_id="get_user_entries")
 async def get_user_entries(
     user_id: UUID, entry_service: EntryService = Depends(get_service(EntryService))
 ) -> Iterable[EntrySchema]:
@@ -18,7 +18,7 @@ async def get_user_entries(
     return new_entry
 
 
-@router.post("/{user_id}/entries", response_model=EntrySchema)
+@router.post("/{user_id}/entries", response_model=EntrySchema, operation_id="create_new_entry")
 async def post_new_entry(
     user_id: UUID, entry: CreateEntrySchema, entry_service: EntryService = Depends(get_service(EntryService))
 ) -> EntrySchema:
@@ -26,7 +26,7 @@ async def post_new_entry(
     return new_entry
 
 
-@router.put("/{user_id}/entries/{entry_id}", response_model=EntrySchema)
+@router.put("/{user_id}/entries/{entry_id}", response_model=EntrySchema, operation_id="update_entry")
 async def put_entry(
     user_id: UUID,
     entry_id: UUID,
@@ -38,7 +38,7 @@ async def put_entry(
     return updated_entry
 
 
-@router.delete("/{user_id}/entries/{entry_id}", status_code=204)
+@router.delete("/{user_id}/entries/{entry_id}", status_code=204, response_class=Response, operation_id="delete_entry")
 async def delete_entry_for_user(
     user_id: UUID, entry_id: UUID, entry_service: EntryService = Depends(get_service(EntryService))
 ) -> None:

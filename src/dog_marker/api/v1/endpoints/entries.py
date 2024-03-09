@@ -11,7 +11,7 @@ from ..services import EntryService
 router = APIRouter()
 
 
-@router.get("/", response_model=list[EntrySchema])
+@router.get("/", response_model=list[EntrySchema], operation_id="get_all_entries")
 async def get_all_entries(
     user_id: UUID | None = None,
     skip: int | None = 0,
@@ -23,7 +23,7 @@ async def get_all_entries(
     return entries
 
 
-@router.get("/{entry_id}", response_model=Optional[EntrySchema])
+@router.get("/{entry_id}", response_model=Optional[EntrySchema], operation_id="get_entry")
 async def get_entry_by_id(entry_id: UUID, entry_service: EntryService = Depends(get_service(EntryService))):
     entry = entry_service.get(entry_id)
     return entry
