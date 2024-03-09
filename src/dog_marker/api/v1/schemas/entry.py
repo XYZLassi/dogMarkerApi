@@ -5,15 +5,16 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from dog_marker.database.models.schemas import Entry
+from dog_marker.database.schemas import Entry
 from dog_marker.dtypes.coordinate import Longitude, Latitude
 
 
-class EntryApiSchema(BaseModel):
+class EntrySchema(BaseModel):
     id: UUID
     title: str
     description: str | None
     image_path: str | None
+    image_delete_url: str | None
     longitude: Longitude
     latitude: Latitude
     create_date: datetime
@@ -21,23 +22,25 @@ class EntryApiSchema(BaseModel):
     is_owner: bool = False
 
     @staticmethod
-    def from_db(entry: Entry) -> EntryApiSchema:
-        return EntryApiSchema(**entry.dict())
+    def from_entry(entry: Entry) -> EntrySchema:
+        return EntrySchema(**entry.dict())
 
 
-class CreateEntryApiSchema(BaseModel):
+class CreateEntrySchema(BaseModel):
     id: UUID | None = Field(None)
     title: str
     description: str | None = Field(None)
     image_path: str | None = Field(None)
+    image_delete_url: str | None = Field(None)
     longitude: Longitude
     latitude: Latitude
     create_date: datetime | None = Field(None)
 
 
-class UpdateEntryApiSchema(BaseModel):
+class UpdateEntrySchema(BaseModel):
     title: str
-    description: str | None = Field(None)
-    image_path: str | None = Field(None)
+    description: str | None
+    image_path: str | None
+    image_delete_url: str | None
     longitude: Longitude
     latitude: Latitude

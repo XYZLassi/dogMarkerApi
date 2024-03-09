@@ -6,16 +6,16 @@ from sqlalchemy.orm import Session
 from dog_marker.database.cruds import EntryCRUD
 from dog_marker.dtypes.coordinate import Coordinate
 from ..errors import NotAuthorizedError
-from ..schemas import EntryApiSchema, CreateEntryApiSchema, UpdateEntryApiSchema
+from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
 
 
 class EntryService:
     def __init__(self, db: Session):
         self.entry_crud = EntryCRUD(db)
 
-    def get(self, entry_id: UUID, owner_id: UUID | None = None) -> EntryApiSchema:
+    def get(self, entry_id: UUID, owner_id: UUID | None = None) -> EntrySchema:
         entry = self.entry_crud.get(entry_id)
-        api_entry = EntryApiSchema.from_db(entry)
+        api_entry = EntrySchema.from_entry(entry)
 
         api_entry.is_owner = entry.user_id == owner_id if owner_id else False
 
@@ -28,7 +28,7 @@ class EntryService:
         coordinate: Coordinate | None = None,
         skip: int | None = 0,
         limit: int | None = 100,
-    ) -> Iterable[EntryApiSchema]:
+    ) -> Iterable[EntrySchema]:
         entries = self.entry_crud.all(
             user_id=user_id,
             owner_id=owner_id,
@@ -37,7 +37,7 @@ class EntryService:
             limit=limit,
         )
         for entry in entries:
-            api_entry = EntryApiSchema.from_db(entry)
+            api_entry = EntrySchema.from_entry(entry)
 
             if owner_id is not None:
                 api_entry.is_owner = entry.user_id == owner_id
@@ -46,7 +46,7 @@ class EntryService:
 
             yield api_entry
 
-    def update_entry(self, entry_id: UUID, user_id: UUID, update_entry: UpdateEntryApiSchema) -> EntryApiSchema:
+    def update_entry(self, entry_id: UUID, user_id: UUID, update_entry: UpdateEntrySchema) -> EntrySchema:
         old_entry = self.entry_crud.get(entry_id)
 
         if old_entry.user_id != user_id:
@@ -54,14 +54,14 @@ class EntryService:
 
         entry = self.entry_crud.update(entry_id, update_entry)
 
-        api_entry = EntryApiSchema.from_db(entry)
+        api_entry = EntrySchema.from_entry(entry)
         api_entry.is_owner = old_entry.user_id == user_id
         return api_entry
 
-    def create(self, user_id: UUID, data: CreateEntryApiSchema) -> EntryApiSchema:
+    def create(self, user_id: UUID, data: CreateEntrySchema) -> EntrySchema:
         entry = self.entry_crud.create(user_id, data)
 
-        api_entry = EntryApiSchema.from_db(entry)
+        api_entry = EntrySchema.from_entry(entry)
         api_entry.is_owner = True
         return api_entry
 

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, Query
 from dog_marker.dtypes.coordinate import Coordinate, Longitude, Latitude
 from ..errors import DbNotFoundError
 from ..models import EntryDbModel, HiddenEntry
-from ..models.schemas.entry import Entry
+from dog_marker.database.schemas import Entry
 
 
 class CreateEntryProtocol(Protocol):
@@ -19,6 +19,7 @@ class CreateEntryProtocol(Protocol):
     latitude: Latitude
     description: str | None
     image_path: str | None
+    image_delete_url: str | None
     create_date: datetime | None
 
 
@@ -28,6 +29,7 @@ class UpdateEntryProtocol(Protocol):
     latitude: Latitude
     description: str | None
     image_path: str | None
+    image_delete_url: str | None
 
 
 class EntryCRUD:
@@ -90,6 +92,7 @@ class EntryCRUD:
             title=data.title,
             description=data.description,
             image_path=data.image_path,
+            image_delete_url=data.image_delete_url,
             longitude=data.longitude,
             latitude=data.latitude,
             create_date=data.create_date,
@@ -108,6 +111,7 @@ class EntryCRUD:
         entry.latitude = data.latitude
         entry.description = data.description
         entry.image_path = data.image_path
+        entry.image_delete_url = data.image_delete_url
         self.db.commit()
 
         return entry.to_schema()

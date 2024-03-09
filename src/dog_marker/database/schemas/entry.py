@@ -12,6 +12,7 @@ class Entry(BaseModel):
     title: str
     description: str | None
     image_path: str | None
+    image_delete_url: str | None
     longitude: Longitude
     latitude: Latitude
     create_date: datetime

@@ -14,7 +14,7 @@ from sqlalchemy import (
     Index,
 )
 
-from .schemas.entry import Entry
+from dog_marker.database.schemas import Entry
 from ..base import Base
 
 
@@ -32,6 +32,7 @@ class EntryDbModel(Base):
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     image_path = Column(String, nullable=True)
+    image_delete_url = Column(String, nullable=True)
     longitude = Column(Double, nullable=False)
     latitude = Column(Double, nullable=False)
     create_date = Column(
@@ -55,6 +56,7 @@ class EntryDbModel(Base):
             title=self.title,
             description=self.description,
             image_path=self.image_path,
+            image_delete_url=self.image_delete_url,
             longitude=self.longitude,
             latitude=self.latitude,
             create_date=self.create_date,
