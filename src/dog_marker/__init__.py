@@ -19,7 +19,7 @@ def create_app(config: Config = Config()) -> FastAPI:
 
 
 def bind_db(app: FastAPI, config: Config) -> None:
-    engine = create_engine(config.DATABASE_URL, connect_args={"check_same_thread": False})
+    engine = create_engine(config.DATABASE_URL,pool_size=20, max_overflow=20)
 
     session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
