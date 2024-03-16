@@ -54,6 +54,7 @@ class EntryCRUD:
         coordinate: Coordinate | None = None,
         skip: int | None = None,
         limit: int | None = None,
+        date_from: datetime | None = None,
     ) -> Iterable[Entry]:
         # noinspection PyTypeChecker
         query: Query[EntryDbModel] = self.db.query(EntryDbModel)
@@ -75,6 +76,9 @@ class EntryCRUD:
 
         if coordinate:
             query = query.order_by(desc(EntryDbModel.calc_distance(coordinate.longitude, coordinate.latitude)))
+
+        if date_from is not None:
+            query = query.filter(EntryDbModel.update_date >= date_from)
 
         if skip is not None:
             query = query.offset(skip)

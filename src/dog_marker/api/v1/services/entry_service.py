@@ -1,3 +1,4 @@
+import datetime
 from typing import Iterable
 from uuid import UUID
 
@@ -29,6 +30,7 @@ class EntryService:
         coordinate: Coordinate | None = None,
         skip: int | None = 0,
         limit: int | None = 100,
+        date_from: datetime.datetime | None = None,
     ) -> Iterable[EntrySchema]:
         entries = self.entry_crud.all(
             user_id=user_id,
@@ -36,6 +38,7 @@ class EntryService:
             coordinate=coordinate,
             skip=skip,
             limit=limit,
+            date_from=date_from,
         )
         for entry in entries:
             api_entry = EntrySchema.from_entry(entry)
