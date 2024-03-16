@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -17,9 +18,10 @@ async def get_all_entries(
     skip: int | None = 0,
     limit: int | None = 100,
     coordinate: Coordinate | None = Depends(query_coordinate),
+    date_from: datetime.datetime | None = None,
     entry_service: EntryService = Depends(get_service(EntryService)),
 ):
-    entries = entry_service.all(user_id=user_id, coordinate=coordinate, skip=skip, limit=limit)
+    entries = entry_service.all(user_id=user_id, coordinate=coordinate, skip=skip, limit=limit, date_from=date_from)
     return entries
 
 

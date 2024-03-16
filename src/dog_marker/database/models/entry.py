@@ -24,6 +24,7 @@ class EntryDbModel(Base):
         Index("ix_entries_coordinates", "longitude", "latitude"),
         CheckConstraint("longitude >= -180 and longitude <= 180 ", name="check_longitude"),
         CheckConstraint("latitude >= -90 and latitude <= 90 ", name="check_latitude"),
+        CheckConstraint("update_date >= create_date ", name="check_update_time"),
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -36,13 +37,13 @@ class EntryDbModel(Base):
     longitude = Column(Double, nullable=False)
     latitude = Column(Double, nullable=False)
     create_date = Column(
-        DateTime(timezone=False),
+        DateTime(timezone=True),
         nullable=False,
         default=datetime.utcnow,
         server_default=func.now(),
     )
     update_date = Column(
-        DateTime(timezone=False),
+        DateTime(timezone=True),
         nullable=False,
         default=datetime.utcnow,
         server_default=func.now(),
