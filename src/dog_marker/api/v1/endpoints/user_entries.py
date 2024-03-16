@@ -3,7 +3,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response
 
-from .dependecies import get_service
+from dog_marker.dtypes.pagination import Pagination
+from .dependecies import get_service, query_pagination
 from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
 from ..services import EntryService
 
@@ -12,9 +13,11 @@ router = APIRouter()
 
 @router.get("/{user_id}/entries", response_model=list[EntrySchema], operation_id="get_user_entries")
 async def get_user_entries(
-    user_id: UUID, entry_service: EntryService = Depends(get_service(EntryService))
+    user_id: UUID,
+    page_info: Pagination = Depends(query_pagination),
+    entry_service: EntryService = Depends(get_service(EntryService)),
 ) -> Iterable[EntrySchema]:
-    new_entry = entry_service.all(owner_id=user_id)
+    new_entry = entry_service.all(page_info=page_info, owner_id=user_id)
     return new_entry
 
 

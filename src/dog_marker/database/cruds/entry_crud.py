@@ -10,6 +10,7 @@ from dog_marker.dtypes.coordinate import Coordinate, Longitude, Latitude
 from ..errors import DbNotFoundError
 from ..models import EntryDbModel, HiddenEntry
 from dog_marker.database.schemas import Entry
+from ...dtypes.pagination import Pagination
 
 
 class CreateEntryProtocol(Protocol):
@@ -51,9 +52,8 @@ class EntryCRUD:
         self,
         user_id: UUID | None = None,
         owner_id: UUID | None = None,
+        page_info: Pagination | None = None,
         coordinate: Coordinate | None = None,
-        skip: int | None = None,
-        limit: int | None = None,
         date_from: datetime | None = None,
     ) -> Iterable[Entry]:
         # noinspection PyTypeChecker
@@ -80,11 +80,8 @@ class EntryCRUD:
         if date_from is not None:
             query = query.filter(EntryDbModel.update_date >= date_from)
 
-        if skip is not None:
-            query = query.offset(skip)
-
-        if limit is not None:
-            query = query.limit(limit)
+        if page_info is not None:
+            query = query.offset(page_info.skip).limit(page_info.limit)
 
         for entry in query.all():
             yield entry.to_schema()
