@@ -13,5 +13,9 @@ ENV PYTHONUNBUFFERED=1
 ENV DATABASE_URL=sqlite:///./sql_app.db
 ENV CREATE_DB=True
 ENV PYTHONPATH=/app/src/
+
+ENV POSTGRES_DB_POOL_SIZE=20
+ENV POSTGRES_DB_MAX_OVERFLOW=20
+
 EXPOSE 8000
 CMD ["/usr/local/bin/uvicorn", "wsgi:app", "--host", "0.0.0.0", "--port", "8000"]

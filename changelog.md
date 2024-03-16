@@ -1,6 +1,7 @@
 # Changelog
 
 ## Develop
+- Add-Config: POSTGRES_DB_POOL_SIZE and POSTGRES_DB_MAX_OVERFLOW
 
 ## V0.1.1
 - Fix: image_delete_url for non owner-users

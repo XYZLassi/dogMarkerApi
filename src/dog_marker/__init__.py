@@ -19,7 +19,14 @@ def create_app(config: Config = Config()) -> FastAPI:
 
 
 def bind_db(app: FastAPI, config: Config) -> None:
-    engine = create_engine(config.DATABASE_URL,pool_size=20, max_overflow=20)
+    is_postgres = config.DATABASE_URL.startswith("postgresql")
+
+    if is_postgres:
+        engine = create_engine(
+            config.DATABASE_URL, pool_size=config.POSTGRES_DB_POOL_SIZE, max_overflow=config.POSTGRES_DB_MAX_OVERFLOW
+        )
+    else:
+        engine = create_engine(config.DATABASE_URL, connect_args={"check_same_thread": False})
 
     session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
