@@ -33,7 +33,17 @@ def bind_db(app: FastAPI, config: Config) -> None:
     @app.on_event("startup")
     def on_startup() -> None:
         if config.CREATE_DB:
-            Base.metadata.create_all(bind=engine)
+            if config.DATABASE_URL.startswith("postgresql"):
+                from alembic.config import Config
+                from alembic import command
+
+                alembic_cfg = Config()
+                alembic_cfg.set_main_option("script_location", "alembic_postgres")
+                alembic_cfg.set_main_option("sqlalchemy.url", config.DATABASE_URL)
+                command.upgrade(alembic_cfg, "head")
+
+            else:
+                Base.metadata.create_all(bind=engine)
 
     @app.middleware("http")
     async def db_session_middleware(request: Request, call_next):
