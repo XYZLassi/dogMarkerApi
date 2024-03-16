@@ -18,6 +18,7 @@ class EntryService:
         api_entry = EntrySchema.from_entry(entry)
 
         api_entry.is_owner = entry.user_id == owner_id if owner_id else False
+        api_entry.image_delete_url = entry.image_delete_url if owner_id and entry.user_id == owner_id else None
 
         return api_entry
 
