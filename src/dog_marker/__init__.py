@@ -9,6 +9,7 @@ from .database.base import Base
 def create_app(config: Config = Config()) -> FastAPI:
     app = FastAPI(title="DogMarker - API")
 
+    bind_config(app, config)
     bind_db(app, config)
 
     from .api.v1 import api_v1
@@ -16,6 +17,14 @@ def create_app(config: Config = Config()) -> FastAPI:
     app.mount("/v1", api_v1)
 
     return app
+
+
+def bind_config(app: FastAPI, config: Config) -> None:
+    @app.middleware("http")
+    async def db_session_middleware(request: Request, call_next):
+        request.state.config = config
+        response = await call_next(request)
+        return response
 
 
 def bind_db(app: FastAPI, config: Config) -> None:

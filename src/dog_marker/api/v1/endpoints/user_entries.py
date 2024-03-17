@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Response
 
 from dog_marker.dtypes.pagination import Pagination
-from .dependecies import get_service, query_pagination
+from .dependecies import get_service, query_pagination, authenticate_app
 from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
 from ..services import EntryService
 
@@ -21,15 +21,27 @@ async def get_user_entries(
     return new_entry
 
 
-@router.post("/{user_id}/entries", response_model=EntrySchema, operation_id="create_new_entry")
+@router.post(
+    "/{user_id}/entries",
+    response_model=EntrySchema,
+    operation_id="create_new_entry",
+    dependencies=[Depends(authenticate_app)],
+)
 async def post_new_entry(
-    user_id: UUID, entry: CreateEntrySchema, entry_service: EntryService = Depends(get_service(EntryService))
+    user_id: UUID,
+    entry: CreateEntrySchema,
+    entry_service: EntryService = Depends(get_service(EntryService)),
 ) -> EntrySchema:
     new_entry = entry_service.create(user_id, entry)
     return new_entry
 
 
-@router.put("/{user_id}/entries/{entry_id}", response_model=EntrySchema, operation_id="update_entry")
+@router.put(
+    "/{user_id}/entries/{entry_id}",
+    response_model=EntrySchema,
+    operation_id="update_entry",
+    dependencies=[Depends(authenticate_app)],
+)
 async def put_entry(
     user_id: UUID,
     entry_id: UUID,

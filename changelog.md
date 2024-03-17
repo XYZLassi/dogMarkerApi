@@ -1,6 +1,7 @@
 # Changelog
 
 ## Develop
+- Add: App-Token authentication
 - Refactor: query_pagination
 - Fix: Add timezones for entries
 - Add: date_from in get_all_entries
