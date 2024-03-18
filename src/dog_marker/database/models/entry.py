@@ -12,10 +12,31 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     Index,
+    Integer,
+    ForeignKey,
 )
+from sqlalchemy.orm import relationship
 
 from dog_marker.database.schemas import Entry
 from ..base import Base
+
+
+class EntryImageDbModel(Base):
+    __tablename__ = "entry_images"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    entry_id = Column(ForeignKey("entries.id", ondelete="CASCADE"), nullable=False)
+    entry = relationship("EntryDbModel", back_populates="image_info")
+
+    image_path = Column(String, nullable=True)
+    image_delete_url = Column(String, nullable=True)
+
+    create_date = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        server_default=func.now(),
+    )
 
 
 class EntryDbModel(Base):
@@ -32,8 +53,11 @@ class EntryDbModel(Base):
     user_id = Column(UUID(as_uuid=True), index=True, nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    image_path = Column(String, nullable=True)
-    image_delete_url = Column(String, nullable=True)
+
+    image_info = relationship(
+        "EntryImageDbModel", uselist=False, order_by="desc(EntryImageDbModel.id)", back_populates="entry"
+    )
+
     longitude = Column(Double, nullable=False)
     latitude = Column(Double, nullable=False)
     create_date = Column(
@@ -49,6 +73,14 @@ class EntryDbModel(Base):
         server_default=func.now(),
         onupdate=datetime.now,
     )
+
+    @property
+    def image_path(self) -> str | None:
+        return self.image_info.image_path if self.image_info else None
+
+    @property
+    def image_delete_url(self) -> str | None:
+        return self.image_info.image_delete_url if self.image_info else None
 
     def to_schema(self) -> Entry:
         return Entry(

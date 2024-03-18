@@ -1,6 +1,7 @@
 # Changelog
 
 ## Develop
+- Add: EntryImageDbModel
 - Add: Charset in content-type
 - Add: App-Token authentication
 - Refactor: query_pagination

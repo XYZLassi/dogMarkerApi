@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, Query
 
 from dog_marker.dtypes.coordinate import Coordinate, Longitude, Latitude
 from ..errors import DbNotFoundError
-from ..models import EntryDbModel, HiddenEntry
+from ..models import EntryDbModel, HiddenEntry, EntryImageDbModel
 from dog_marker.database.schemas import Entry
 from ...dtypes.pagination import Pagination
 
@@ -87,17 +87,22 @@ class EntryCRUD:
             yield entry.to_schema()
 
     def create(self, user_id: UUID, data: CreateEntryProtocol) -> Entry:
+
         new_entry = EntryDbModel(
             id=data.id,
             user_id=user_id,
             title=data.title,
             description=data.description,
-            image_path=data.image_path,
-            image_delete_url=data.image_delete_url,
             longitude=data.longitude,
             latitude=data.latitude,
             create_date=data.create_date,
         )
+
+        if data.image_path or data.image_delete_url:
+            new_entry.image_info = EntryImageDbModel(
+                image_path=data.image_path,
+                image_delete_url=data.image_delete_url,
+            )
 
         self.db.add(new_entry)
         self.db.commit()
@@ -107,12 +112,18 @@ class EntryCRUD:
     def update(self, entry_id: UUID, data: UpdateEntryProtocol) -> Entry:
         entry = self.__get(entry_id)
 
+        if entry.image_delete_url != data.image_delete_url or entry.image_info.image_path != data.image_path:
+            new_entry_image = EntryImageDbModel(
+                entry_id=entry.id,
+                image_path=data.image_path,
+                image_delete_url=data.image_delete_url,
+            )
+            self.db.add(new_entry_image)
+
         entry.title = data.title
         entry.longitude = data.longitude
         entry.latitude = data.latitude
         entry.description = data.description
-        entry.image_path = data.image_path
-        entry.image_delete_url = data.image_delete_url
         self.db.commit()
 
         return entry.to_schema()
