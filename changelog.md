@@ -1,6 +1,8 @@
 # Changelog
 
 ## Develop
+
+## V0.2
 - Add: EntryImageDbModel
 - Add: Charset in content-type
 - Add: App-Token authentication
