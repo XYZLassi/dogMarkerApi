@@ -1,10 +1,12 @@
+import datetime
 from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
 from dog_marker.dtypes.coordinate import Coordinate
-from .dependecies import get_service, query_coordinate
+from dog_marker.dtypes.pagination import Pagination
+from .dependecies import get_service, query_coordinate, query_pagination
 from ..schemas import EntrySchema
 from ..services import EntryService
 
@@ -14,12 +16,12 @@ router = APIRouter()
 @router.get("/", response_model=list[EntrySchema], operation_id="get_all_entries")
 async def get_all_entries(
     user_id: UUID | None = None,
-    skip: int | None = 0,
-    limit: int | None = 100,
+    page_info: Pagination = Depends(query_pagination),
     coordinate: Coordinate | None = Depends(query_coordinate),
+    date_from: datetime.datetime | None = None,
     entry_service: EntryService = Depends(get_service(EntryService)),
 ):
-    entries = entry_service.all(user_id=user_id, coordinate=coordinate, skip=skip, limit=limit)
+    entries = entry_service.all(page_info=page_info, user_id=user_id, coordinate=coordinate, date_from=date_from)
     return entries
 
 

@@ -9,7 +9,9 @@ from .database.base import Base
 def create_app(config: Config = Config()) -> FastAPI:
     app = FastAPI(title="DogMarker - API")
 
+    bind_config(app, config)
     bind_db(app, config)
+    bind_charset(app, config)
 
     from .api.v1 import api_v1
 
@@ -18,15 +20,53 @@ def create_app(config: Config = Config()) -> FastAPI:
     return app
 
 
+def bind_config(app: FastAPI, config: Config) -> None:
+    @app.middleware("http")
+    async def db_session_middleware(request: Request, call_next):
+        request.state.config = config
+        response = await call_next(request)
+        return response
+
+
+def bind_charset(app: FastAPI, config: Config) -> None:
+    @app.middleware("http")
+    async def db_session_middleware(request: Request, call_next):
+        response: Response = await call_next(request)
+        content_type: str = response.headers.get("content-type")
+
+        if content_type and content_type.find("charset") == -1:
+            content_type = f"{content_type}; charset={response.charset}"
+            response.headers["content-type"] = content_type
+
+        return response
+
+
 def bind_db(app: FastAPI, config: Config) -> None:
-    engine = create_engine(config.DATABASE_URL,pool_size=20, max_overflow=20)
+    is_postgres = config.DATABASE_URL.startswith("postgresql")
+
+    if is_postgres:
+        engine = create_engine(
+            config.DATABASE_URL, pool_size=config.POSTGRES_DB_POOL_SIZE, max_overflow=config.POSTGRES_DB_MAX_OVERFLOW
+        )
+    else:
+        engine = create_engine(config.DATABASE_URL, connect_args={"check_same_thread": False})
 
     session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
     @app.on_event("startup")
     def on_startup() -> None:
         if config.CREATE_DB:
-            Base.metadata.create_all(bind=engine)
+            if config.DATABASE_URL.startswith("postgresql"):
+                from alembic.config import Config
+                from alembic import command
+
+                alembic_cfg = Config()
+                alembic_cfg.set_main_option("script_location", "alembic_postgres")
+                alembic_cfg.set_main_option("sqlalchemy.url", config.DATABASE_URL)
+                command.upgrade(alembic_cfg, "head")
+
+            else:
+                Base.metadata.create_all(bind=engine)
 
     @app.middleware("http")
     async def db_session_middleware(request: Request, call_next):

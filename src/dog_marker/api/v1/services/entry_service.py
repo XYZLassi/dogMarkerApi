@@ -1,3 +1,4 @@
+import datetime
 from typing import Iterable
 from uuid import UUID
 
@@ -5,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from dog_marker.database.cruds import EntryCRUD
 from dog_marker.dtypes.coordinate import Coordinate
+from dog_marker.dtypes.pagination import Pagination
 from ..errors import NotAuthorizedError
 from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
 
@@ -24,18 +26,18 @@ class EntryService:
 
     def all(
         self,
+        page_info: Pagination,
         user_id: UUID | None = None,
         owner_id: UUID | None = None,
         coordinate: Coordinate | None = None,
-        skip: int | None = 0,
-        limit: int | None = 100,
+        date_from: datetime.datetime | None = None,
     ) -> Iterable[EntrySchema]:
         entries = self.entry_crud.all(
             user_id=user_id,
             owner_id=owner_id,
             coordinate=coordinate,
-            skip=skip,
-            limit=limit,
+            page_info=page_info,
+            date_from=date_from,
         )
         for entry in entries:
             api_entry = EntrySchema.from_entry(entry)
