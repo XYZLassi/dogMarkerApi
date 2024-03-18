@@ -1,6 +1,7 @@
 # Changelog
 
 ## Develop
+- Add: Charset in content-type
 - Add: App-Token authentication
 - Refactor: query_pagination
 - Fix: Add timezones for entries

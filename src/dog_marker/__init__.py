@@ -11,6 +11,7 @@ def create_app(config: Config = Config()) -> FastAPI:
 
     bind_config(app, config)
     bind_db(app, config)
+    bind_charset(app, config)
 
     from .api.v1 import api_v1
 
@@ -24,6 +25,19 @@ def bind_config(app: FastAPI, config: Config) -> None:
     async def db_session_middleware(request: Request, call_next):
         request.state.config = config
         response = await call_next(request)
+        return response
+
+
+def bind_charset(app: FastAPI, config: Config) -> None:
+    @app.middleware("http")
+    async def db_session_middleware(request: Request, call_next):
+        response: Response = await call_next(request)
+        content_type: str = response.headers.get("content-type")
+
+        if content_type and content_type.find("charset") == -1:
+            content_type = f"{content_type}; charset={response.charset}"
+            response.headers["content-type"] = content_type
+
         return response
 
 
