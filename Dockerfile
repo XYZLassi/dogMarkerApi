@@ -1,7 +1,7 @@
 ARG INSTALL_PYTHON_VERSION=3.11
 
 # ================================= BASE =================================
-FROM python:${INSTALL_PYTHON_VERSION}-slim-buster as production
+FROM python:${INSTALL_PYTHON_VERSION}-alpine as production
 WORKDIR /app
 COPY requirements.txt requirements.txt
 RUN pip3 install --upgrade pip

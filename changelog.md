@@ -5,6 +5,7 @@
 ## v0.2.1
 
 - Fix: image_delete_url for non owner-users in get_all_entries
+- Change: Dockerfile to 3.11-alpine
 
 ## v0.2
 - Add: EntryImageDbModel
