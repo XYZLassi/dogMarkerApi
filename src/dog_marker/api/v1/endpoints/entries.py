@@ -6,8 +6,10 @@ from fastapi import APIRouter, Depends
 
 from dog_marker.dtypes.coordinate import Coordinate
 from dog_marker.dtypes.pagination import Pagination
+from dog_marker.database.schemas import warning_levels
 from .dependecies import get_service, query_coordinate, query_pagination
 from ..schemas import EntrySchema
+
 from ..services import EntryService
 
 router = APIRouter()
@@ -19,9 +21,16 @@ async def get_all_entries(
     page_info: Pagination = Depends(query_pagination),
     coordinate: Coordinate | None = Depends(query_coordinate),
     date_from: datetime.datetime | None = None,
+    warning_level: warning_levels = "information",
     entry_service: EntryService = Depends(get_service(EntryService)),
 ):
-    entries = entry_service.all(page_info=page_info, user_id=user_id, coordinate=coordinate, date_from=date_from)
+    entries = entry_service.all(
+        page_info=page_info,
+        user_id=user_id,
+        coordinate=coordinate,
+        date_from=date_from,
+        warning_level=warning_level,
+    )
     return entries
 
 

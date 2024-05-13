@@ -57,6 +57,7 @@ class EntryCRUD:
         page_info: Pagination | None = None,
         coordinate: Coordinate | None = None,
         date_from: datetime | None = None,
+        warning_level: WarningLevel | warning_levels | None = None,
     ) -> Iterable[Entry]:
         # noinspection PyTypeChecker
         query: Query[EntryDbModel] = self.db.query(EntryDbModel)
@@ -81,6 +82,10 @@ class EntryCRUD:
 
         if date_from is not None:
             query = query.filter(EntryDbModel.update_date >= date_from)
+
+        if warning_level:
+            level_enum = WarningLevel.from_(warning_level)
+            query = query.filter(EntryDbModel.warning_level >= level_enum.value)
 
         if page_info is not None:
             query = query.offset(page_info.skip).limit(page_info.limit)

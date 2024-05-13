@@ -9,6 +9,7 @@ from dog_marker.dtypes.coordinate import Coordinate
 from dog_marker.dtypes.pagination import Pagination
 from ..errors import NotAuthorizedError
 from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
+from dog_marker.database.schemas import WarningLevel, warning_levels
 
 
 class EntryService:
@@ -30,6 +31,7 @@ class EntryService:
         owner_id: UUID | None = None,
         coordinate: Coordinate | None = None,
         date_from: datetime.datetime | None = None,
+        warning_level: WarningLevel | warning_levels | None = None,
     ) -> Iterable[EntrySchema]:
         entries = self.entry_crud.all(
             user_id=user_id,
@@ -37,6 +39,7 @@ class EntryService:
             coordinate=coordinate,
             page_info=page_info,
             date_from=date_from,
+            warning_level=warning_level,
         )
         for entry in entries:
             is_owner = False
