@@ -1,3 +1,4 @@
-__all__ = ["EntrySchema", "CreateEntrySchema", "UpdateEntrySchema"]
+__all__ = ["CategorySchema", "EntrySchema", "CreateEntrySchema", "UpdateEntrySchema"]
 
+from .category import CategorySchema
 from .entry import EntrySchema, CreateEntrySchema, UpdateEntrySchema

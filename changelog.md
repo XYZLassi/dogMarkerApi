@@ -2,6 +2,11 @@
 
 ## Develop
 
+## v0.3
+
+- Add: Entity-Categories
+- Add: WarningLevels
+
 ## v0.2.1
 
 - Fix: image_delete_url for non owner-users in get_all_entries

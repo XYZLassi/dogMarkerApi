@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session, Query
 
 from dog_marker.dtypes.coordinate import Coordinate, Longitude, Latitude
 from ..errors import DbNotFoundError
-from ..models import EntryDbModel, HiddenEntry, EntryImageDbModel
-from dog_marker.database.schemas import Entry
+from ..models import EntryDbModel, HiddenEntry, EntryImageDbModel, CategoryDbModel
+from dog_marker.database.schemas import Entry, WarningLevel, warning_levels
 from ...dtypes.pagination import Pagination
 
 
@@ -20,8 +20,10 @@ class CreateEntryProtocol(Protocol):
     latitude: Latitude
     description: str | None
     image_path: str | None
+    warning_level: WarningLevel | warning_levels | None
     image_delete_url: str | None
     create_date: datetime | None
+    categories: list[str] | None
 
 
 class UpdateEntryProtocol(Protocol):
@@ -30,7 +32,9 @@ class UpdateEntryProtocol(Protocol):
     latitude: Latitude
     description: str | None
     image_path: str | None
+    warning_level: WarningLevel | warning_levels
     image_delete_url: str | None
+    categories: list[str]
 
 
 class EntryCRUD:
@@ -55,6 +59,7 @@ class EntryCRUD:
         page_info: Pagination | None = None,
         coordinate: Coordinate | None = None,
         date_from: datetime | None = None,
+        warning_level: WarningLevel | warning_levels | None = None,
     ) -> Iterable[Entry]:
         # noinspection PyTypeChecker
         query: Query[EntryDbModel] = self.db.query(EntryDbModel)
@@ -80,6 +85,10 @@ class EntryCRUD:
         if date_from is not None:
             query = query.filter(EntryDbModel.update_date >= date_from)
 
+        if warning_level:
+            level_enum = WarningLevel.from_(warning_level)
+            query = query.filter(EntryDbModel.warning_level >= level_enum.value)
+
         if page_info is not None:
             query = query.offset(page_info.skip).limit(page_info.limit)
 
@@ -87,12 +96,12 @@ class EntryCRUD:
             yield entry.to_schema()
 
     def create(self, user_id: UUID, data: CreateEntryProtocol) -> Entry:
-
         new_entry = EntryDbModel(
             id=data.id,
             user_id=user_id,
             title=data.title,
             description=data.description,
+            warning_level=WarningLevel.from_(data.warning_level),
             longitude=data.longitude,
             latitude=data.latitude,
             create_date=data.create_date,
@@ -104,6 +113,14 @@ class EntryCRUD:
                 image_delete_url=data.image_delete_url,
             )
 
+        if data.categories:
+            for category_key in data.categories:
+                category = self.db.query(CategoryDbModel).get(category_key)
+                if not category:
+                    raise DbNotFoundError(f"Cannot find category with id {category_key}")
+
+                new_entry.append_category(category)
+
         self.db.add(new_entry)
         self.db.commit()
 
@@ -112,7 +129,7 @@ class EntryCRUD:
     def update(self, entry_id: UUID, data: UpdateEntryProtocol) -> Entry:
         entry = self.__get(entry_id)
 
-        if entry.image_delete_url != data.image_delete_url or entry.image_info.image_path != data.image_path:
+        if entry.image_delete_url != data.image_delete_url or entry.image_path != data.image_path:
             new_entry_image = EntryImageDbModel(
                 entry_id=entry.id,
                 image_path=data.image_path,
@@ -121,9 +138,19 @@ class EntryCRUD:
             self.db.add(new_entry_image)
 
         entry.title = data.title
+        entry.warning_level = WarningLevel.from_(data.warning_level)
         entry.longitude = data.longitude
         entry.latitude = data.latitude
         entry.description = data.description
+
+        entry.clear_categories()
+        for category_key in data.categories:
+            category = self.db.query(CategoryDbModel).get(category_key)
+            if not category:
+                raise DbNotFoundError(f"Cannot find category with id {category_key}")
+
+            entry.append_category(category)
+
         self.db.commit()
 
         return entry.to_schema()
