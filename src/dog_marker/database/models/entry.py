@@ -17,7 +17,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
-from dog_marker.database.schemas import Entry
+from dog_marker.database.schemas import Entry, WarningLevel
 from ..base import Base
 
 
@@ -43,6 +43,7 @@ class EntryDbModel(Base):
     __tablename__ = "entries"
     __table_args__ = (
         Index("ix_entries_coordinates", "longitude", "latitude"),
+        CheckConstraint("warning_level >= 0 and warning_level <= 2 ", name="check_warning_level"),
         CheckConstraint("longitude >= -180 and longitude <= 180 ", name="check_longitude"),
         CheckConstraint("latitude >= -90 and latitude <= 90 ", name="check_latitude"),
         CheckConstraint("update_date >= create_date ", name="check_update_time"),
@@ -57,6 +58,8 @@ class EntryDbModel(Base):
     image_info = relationship(
         "EntryImageDbModel", uselist=False, order_by="desc(EntryImageDbModel.id)", back_populates="entry"
     )
+
+    warning_level = Column(Integer, nullable=False, default=0, server_default="0")
 
     longitude = Column(Double, nullable=False)
     latitude = Column(Double, nullable=False)
@@ -90,6 +93,7 @@ class EntryDbModel(Base):
             description=self.description,
             image_path=self.image_path,
             image_delete_url=self.image_delete_url,
+            warning_level=WarningLevel(self.warning_level),
             longitude=self.longitude,
             latitude=self.latitude,
             create_date=self.create_date,
