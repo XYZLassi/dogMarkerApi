@@ -17,10 +17,9 @@ class EntryService:
 
     def get(self, entry_id: UUID, owner_id: UUID | None = None) -> EntrySchema:
         entry = self.entry_crud.get(entry_id)
-        api_entry = EntrySchema.from_entry(entry)
+        is_owner = entry.user_id == owner_id if owner_id else False
 
-        api_entry.is_owner = entry.user_id == owner_id if owner_id else False
-        api_entry.image_delete_url = entry.image_delete_url if owner_id and entry.user_id == owner_id else None
+        api_entry = EntrySchema.from_entry(entry, is_owner=is_owner)
 
         return api_entry
 
@@ -40,12 +39,13 @@ class EntryService:
             date_from=date_from,
         )
         for entry in entries:
-            api_entry = EntrySchema.from_entry(entry)
-
+            is_owner = False
             if owner_id is not None:
-                api_entry.is_owner = entry.user_id == owner_id
+                is_owner = entry.user_id == owner_id
             elif user_id is not None:
-                api_entry.is_owner = entry.user_id == user_id
+                is_owner = entry.user_id == user_id
+
+            api_entry = EntrySchema.from_entry(entry, is_owner=is_owner)
 
             yield api_entry
 

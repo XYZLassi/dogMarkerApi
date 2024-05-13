@@ -8,7 +8,7 @@ from .endpoints.user_entries import router as router_user_entries
 from dog_marker.database.errors import DbNotFoundError
 from .errors import NotAuthorizedError
 
-version = "0.2"
+version = "0.2.1"
 title = "dogMarker - API v1"
 api_v1 = FastAPI(title=title, version=version)
 
