@@ -2,6 +2,8 @@
 
 ## Develop
 
+## v0.3
+
 - Add: Entity-Categories
 - Add: WarningLevels
 
