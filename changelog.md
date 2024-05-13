@@ -6,6 +6,7 @@
 
 - Fix: image_delete_url for non owner-users in get_all_entries
 - Change: Dockerfile to 3.11-alpine
+- Update: .github/workflows/docker-image.yml
 
 ## v0.2
 - Add: EntryImageDbModel
