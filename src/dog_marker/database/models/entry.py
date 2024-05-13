@@ -20,6 +20,8 @@ from sqlalchemy.orm import relationship
 from dog_marker.database.schemas import Entry, WarningLevel
 from ..base import Base
 
+from .mixin.category_mixin import CategoryMixin
+
 
 class EntryImageDbModel(Base):
     __tablename__ = "entry_images"
@@ -39,7 +41,7 @@ class EntryImageDbModel(Base):
     )
 
 
-class EntryDbModel(Base):
+class EntryDbModel(Base, CategoryMixin):
     __tablename__ = "entries"
     __table_args__ = (
         Index("ix_entries_coordinates", "longitude", "latitude"),
@@ -96,6 +98,7 @@ class EntryDbModel(Base):
             warning_level=WarningLevel(self.warning_level),
             longitude=self.longitude,
             latitude=self.latitude,
+            categories=[category.to_schema() for category in self.categories],
             create_date=self.create_date,
             update_date=self.update_date,
         )

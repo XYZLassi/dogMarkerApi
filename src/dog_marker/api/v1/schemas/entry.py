@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field, ConfigDict
 from dog_marker.database.schemas import Entry, warning_levels
 from dog_marker.dtypes.coordinate import Longitude, Latitude
 
+from .category import CategorySchema
+
 
 class EntrySchema(BaseModel):
     model_config = ConfigDict(use_enum_values=False)
@@ -19,6 +21,8 @@ class EntrySchema(BaseModel):
     longitude: Longitude
     latitude: Latitude
     warning_level: warning_levels
+    categories: list[str] = Field(default_factory=list)
+    category_infos: list[CategorySchema] = Field(default_factory=list)
     create_date: datetime
     update_date: datetime
     is_owner: bool = False
@@ -34,6 +38,8 @@ class EntrySchema(BaseModel):
             longitude=entry.longitude,
             latitude=entry.latitude,
             warning_level=entry.warning_level.to_literal(),
+            categories=[category.key for category in entry.categories],
+            category_infos=[CategorySchema.from_db(category) for category in entry.categories],
             create_date=entry.create_date,
             update_date=entry.update_date,
             is_owner=is_owner,
@@ -49,6 +55,7 @@ class CreateEntrySchema(BaseModel):
     warning_level: warning_levels | None = Field(None)
     longitude: Longitude
     latitude: Latitude
+    categories: list[str] | None = Field(None)
     create_date: datetime | None = Field(None)
 
 
@@ -60,3 +67,4 @@ class UpdateEntrySchema(BaseModel):
     warning_level: warning_levels
     longitude: Longitude
     latitude: Latitude
+    categories: list[str] | None = Field(None)

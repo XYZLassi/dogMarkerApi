@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, Query
 
 from dog_marker.dtypes.coordinate import Coordinate, Longitude, Latitude
 from ..errors import DbNotFoundError
-from ..models import EntryDbModel, HiddenEntry, EntryImageDbModel
+from ..models import EntryDbModel, HiddenEntry, EntryImageDbModel, CategoryDbModel
 from dog_marker.database.schemas import Entry, WarningLevel, warning_levels
 from ...dtypes.pagination import Pagination
 
@@ -23,6 +23,7 @@ class CreateEntryProtocol(Protocol):
     warning_level: WarningLevel | warning_levels | None
     image_delete_url: str | None
     create_date: datetime | None
+    categories: list[str] | None
 
 
 class UpdateEntryProtocol(Protocol):
@@ -33,6 +34,7 @@ class UpdateEntryProtocol(Protocol):
     image_path: str | None
     warning_level: WarningLevel | warning_levels
     image_delete_url: str | None
+    categories: list[str]
 
 
 class EntryCRUD:
@@ -94,7 +96,6 @@ class EntryCRUD:
             yield entry.to_schema()
 
     def create(self, user_id: UUID, data: CreateEntryProtocol) -> Entry:
-
         new_entry = EntryDbModel(
             id=data.id,
             user_id=user_id,
@@ -111,6 +112,14 @@ class EntryCRUD:
                 image_path=data.image_path,
                 image_delete_url=data.image_delete_url,
             )
+
+        if data.categories:
+            for category_key in data.categories:
+                category = self.db.query(CategoryDbModel).get(category_key)
+                if not category:
+                    raise DbNotFoundError(f"Cannot find category with id {category_key}")
+
+                new_entry.append_category(category)
 
         self.db.add(new_entry)
         self.db.commit()
@@ -133,6 +142,15 @@ class EntryCRUD:
         entry.longitude = data.longitude
         entry.latitude = data.latitude
         entry.description = data.description
+
+        entry.clear_categories()
+        for category_key in data.categories:
+            category = self.db.query(CategoryDbModel).get(category_key)
+            if not category:
+                raise DbNotFoundError(f"Cannot find category with id {category_key}")
+
+            entry.append_category(category)
+
         self.db.commit()
 
         return entry.to_schema()
