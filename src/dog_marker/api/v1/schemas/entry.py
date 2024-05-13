@@ -22,8 +22,19 @@ class EntrySchema(BaseModel):
     is_owner: bool = False
 
     @staticmethod
-    def from_entry(entry: Entry) -> EntrySchema:
-        return EntrySchema(**entry.dict())
+    def from_entry(entry: Entry, is_owner: bool = False) -> EntrySchema:
+        return EntrySchema(
+            id=entry.id,
+            title=entry.title,
+            description=entry.description,
+            image_path=entry.image_path,
+            image_delete_url=entry.image_delete_url if is_owner else None,
+            longitude=entry.longitude,
+            latitude=entry.latitude,
+            create_date=entry.create_date,
+            update_date=entry.update_date,
+            is_owner=is_owner,
+        )
 
 
 class CreateEntrySchema(BaseModel):
