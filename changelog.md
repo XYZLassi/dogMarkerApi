@@ -1,6 +1,8 @@
 # Changelog
 
 ## Develop
+
+## v0.4
 - Add: Undo deleted entries
 - Refactor: EntryCRUD
 - Add: Trash for entries
