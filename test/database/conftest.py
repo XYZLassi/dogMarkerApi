@@ -6,7 +6,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from dog_marker import Base
-from dog_marker.database.schemas import Entry
 
 
 @pytest.fixture()
@@ -18,19 +17,3 @@ def db() -> Session:
     yield session
     session.rollback()
     session.close()
-
-
-@pytest.fixture()
-def valid_entry() -> Entry:
-    return Entry(
-        id=uuid.uuid4(),
-        user_id=uuid.uuid4(),
-        title="Test Entry",
-        description="Hello Testing",
-        image_path="https://http.cat/404",
-        image_delete_url=None,
-        create_date=datetime.utcnow(),
-        update_date=datetime.utcnow(),
-        latitude=51.05325109503178,
-        longitude=13.733939121392618,
-    )
