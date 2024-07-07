@@ -2,6 +2,10 @@
 
 ## Develop
 
+## v0.4.3
+- Fix: Dependencies for user_entries
+- Fix: owner deleted in user trash
+
 ## v0.4.2
 - Remove: Test :)
 
