@@ -2,6 +2,9 @@
 
 ## Develop
 
+## v0.4.3
+- Fix: owner deleted in user trash
+
 ## v0.4.2
 - Remove: Test :)
 

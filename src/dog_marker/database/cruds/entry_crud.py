@@ -4,9 +4,8 @@ from typing import Callable, Type, Iterable
 from uuid import UUID
 
 from result import Result, Err, Ok
-from sqlalchemy import desc
+from sqlalchemy import desc, exists
 from sqlalchemy.orm import Session, Query
-from sqlalchemy.sql.functions import count
 
 from ..errors import DbNotFoundError
 from ..models import EntryDbModel, CategoryDbModel, EntryImageDbModel, HiddenEntry
@@ -189,46 +188,34 @@ class EntryCRUD:
 
         return __internal
 
-    def filter_deleted(
-        self, user_id: UUID | None = None
-    ) -> Callable[[Query[Type[EntryDbModel]]], Query[Type[EntryDbModel]]]:
+    def filter_show_trash(self, user_id: UUID) -> Callable[[Query[Type[EntryDbModel]]], Query[Type[EntryDbModel]]]:
         def __internal(query: Query[Type[EntryDbModel]]) -> Query[Type[EntryDbModel]]:
-            user_clause = HiddenEntry.user_id == EntryDbModel.user_id
-            if user_id:
-                user_clause |= HiddenEntry.user_id == user_id
-
-            query = query.join(
-                HiddenEntry,
-                onclause=and_(
-                    HiddenEntry.entry_id == EntryDbModel.id,
-                    user_clause,
-                ),
-                isouter=True,
+            query = query.filter(
+                exists().where(and_(HiddenEntry.user_id == user_id, HiddenEntry.entry_id == EntryDbModel.id))
             )
-            # noinspection PyTypeChecker
-            query = query.filter(HiddenEntry.entry_id == None)  # noqa: E711
-            return query
-
-        return __internal
-
-    def filter_show_deleted(self, user_id: UUID) -> Callable[[Query[Type[EntryDbModel]]], Query[Type[EntryDbModel]]]:
-        def __internal(query: Query[Type[EntryDbModel]]) -> Query[Type[EntryDbModel]]:
-            query = query.join(
-                HiddenEntry,
-                onclause=and_(
-                    HiddenEntry.entry_id == EntryDbModel.id,
-                    HiddenEntry.user_id == user_id,
-                ),
-                isouter=True,
-            )
-            # noinspection PyTypeChecker
-            query = query.filter(HiddenEntry.entry_id != None)  # noqa: E711
             return query
 
         return __internal
 
     def filter_owner_deleted(self) -> Callable[[Query[Type[EntryDbModel]]], Query[Type[EntryDbModel]]]:
         def __internal(query: Query[Type[EntryDbModel]]) -> Query[Type[EntryDbModel]]:
+            query = query.filter(
+                ~exists().where(
+                    and_(HiddenEntry.user_id == EntryDbModel.user_id, HiddenEntry.entry_id == EntryDbModel.id)
+                )
+            )
+            return query
+
+        return __internal
+
+    def filter_user_deleted(
+        self, user_id: UUID | None = None
+    ) -> Callable[[Query[Type[EntryDbModel]]], Query[Type[EntryDbModel]]]:
+        def __internal(query: Query[Type[EntryDbModel]]) -> Query[Type[EntryDbModel]]:
+            if user_id:
+                query = query.filter(
+                    ~exists().where(and_(HiddenEntry.user_id == user_id, HiddenEntry.entry_id == EntryDbModel.id))
+                )
             return query
 
         return __internal

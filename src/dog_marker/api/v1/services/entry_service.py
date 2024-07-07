@@ -87,7 +87,8 @@ class EntryService:
         entry_crud = EntryCRUD(self.db)
         flow = (
             entry_crud.query()
-            .map(entry_crud.filter_deleted(user_id=user_id))
+            .map(entry_crud.filter_owner_deleted())
+            .map(entry_crud.filter_user_deleted(user_id=user_id))
             .map(entry_crud.filter_by_date_from(date_from))
             .map(entry_crud.filter_by_warning_level(warning_level))
             .map(entry_crud.order_by_coordinate(coordinate))
@@ -113,7 +114,7 @@ class EntryService:
         flow = (
             entry_crud.query()
             .map(entry_crud.filter_by_user(user_id=owner_id))
-            .map(entry_crud.filter_deleted(user_id=owner_id))
+            .map(entry_crud.filter_owner_deleted())
             .map(entry_crud.filter_by_date_from(date_from))
             .map(entry_crud.filter_by_warning_level(warning_level))
             .map(entry_crud.order_by_coordinate(coordinate))
@@ -134,12 +135,11 @@ class EntryService:
             raise flow.err_value
 
     def deleted_entries(self, page_info: Pagination, user_id: UUID) -> Iterable[EntrySchema]:
-
         entry_crud = EntryCRUD(self.db)
         flow = (
             entry_crud.query()
             .map(entry_crud.filter_owner_deleted())
-            .map(entry_crud.filter_show_deleted(user_id=user_id))
+            .map(entry_crud.filter_show_trash(user_id=user_id))
             .map(entry_crud.all(page_info))
             .map(self.foreach_map_schema(user_id))
         )
