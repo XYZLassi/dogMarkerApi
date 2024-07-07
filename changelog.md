@@ -1,6 +1,7 @@
 # Changelog
 
 ## Develop
+- Refactor: EntryCRUD
 - Add: Trash for entries
 
 ## v0.3

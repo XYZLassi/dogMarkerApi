@@ -10,3 +10,6 @@ SQLAlchemy==2.0.28
 alembic==1.13.1
 psycopg[binary]==3.1.18
 psycopg2-binary==2.9.9
+
+# General
+Result~=0.17

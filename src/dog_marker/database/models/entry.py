@@ -17,7 +17,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
-from dog_marker.database.schemas import Entry, WarningLevel
+from dog_marker.database.schemas import WarningLevel
 from ..base import Base
 
 from .mixin.category_mixin import CategoryMixin
@@ -52,7 +52,6 @@ class EntryDbModel(Base, CategoryMixin):
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    mark_to_delete = Column(Boolean, nullable=False, default=False)
     user_id = Column(UUID(as_uuid=True), index=True, nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
@@ -86,22 +85,6 @@ class EntryDbModel(Base, CategoryMixin):
     @property
     def image_delete_url(self) -> str | None:
         return self.image_info.image_delete_url if self.image_info else None
-
-    def to_schema(self) -> Entry:
-        return Entry(
-            id=self.id,
-            user_id=self.user_id,
-            title=self.title,
-            description=self.description,
-            image_path=self.image_path,
-            image_delete_url=self.image_delete_url,
-            warning_level=WarningLevel(self.warning_level),
-            longitude=self.longitude,
-            latitude=self.latitude,
-            categories=[category.to_schema() for category in self.categories],
-            create_date=self.create_date,
-            update_date=self.update_date,
-        )
 
     @staticmethod  # Todo: Right Methode in sqlalchemey
     def calc_distance(longitude, latitude):

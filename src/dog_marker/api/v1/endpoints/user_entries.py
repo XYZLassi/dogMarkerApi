@@ -19,7 +19,7 @@ async def get_user_entries(
     page_info: Pagination = Depends(query_pagination),
     entry_service: EntryService = Depends(get_service(EntryService)),
 ) -> Iterable[EntrySchema]:
-    entries = entry_service.all(
+    entries = entry_service.get_all_by_owner(
         page_info=page_info,
         owner_id=user_id,
         warning_level=warning_level,
@@ -54,7 +54,7 @@ async def put_entry(
     update_entry: UpdateEntrySchema,
     entry_service: EntryService = Depends(get_service(EntryService)),
 ) -> EntrySchema:
-    updated_entry = entry_service.update_entry(entry_id, user_id, update_entry)
+    updated_entry = entry_service.update(entry_id, user_id, update_entry)
 
     return updated_entry
 
@@ -72,9 +72,5 @@ async def get_trashed_entries(
     page_info: Pagination = Depends(query_pagination),
     entry_service: EntryService = Depends(get_service(EntryService)),
 ) -> Iterable:
-    entries = entry_service.all(
-        page_info=page_info,
-        owner_id=user_id,
-        deleted=True,
-    )
+    entries = entry_service.deleted_entries(page_info=page_info, user_id=user_id)
     return entries

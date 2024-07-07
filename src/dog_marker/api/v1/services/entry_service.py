@@ -1,77 +1,170 @@
 import datetime
-from typing import Iterable
+from typing import Callable, Iterable
 from uuid import UUID
 
+from result import Result, Ok, Err
 from sqlalchemy.orm import Session
 
 from dog_marker.database.cruds import EntryCRUD
+from dog_marker.database.models import EntryDbModel
+from dog_marker.database.schemas import warning_levels
 from dog_marker.dtypes.coordinate import Coordinate
 from dog_marker.dtypes.pagination import Pagination
-from ..errors import NotAuthorizedError
+from .. import NotAuthorizedError
 from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
-from dog_marker.database.schemas import WarningLevel, warning_levels
 
 
+# noinspection PyMethodMayBeStatic
 class EntryService:
     def __init__(self, db: Session):
-        self.crud = EntryCRUD(db)
+        self.db = db
 
-    def get(self, entry_id: UUID, owner_id: UUID | None = None) -> EntrySchema:
-        entry = self.crud.get(entry_id)
-        is_owner = entry.user_id == owner_id if owner_id else False
+    def map_schema(self, test_user_id: UUID | None = None) -> Callable[[EntryDbModel], EntrySchema]:
+        def __internal(entry: EntryDbModel) -> EntrySchema:
+            is_owner = entry.user_id == test_user_id if test_user_id else False
+            return EntrySchema.from_db(entry, is_owner=is_owner)
 
-        api_entry = EntrySchema.from_db(entry, is_owner=is_owner)
+        return __internal
 
-        return api_entry
+    def test_owner(self, test_user_id: UUID) -> Callable[[EntryDbModel], Result[EntryDbModel, Exception]]:
+        def __internal(entry: EntryDbModel) -> Result[EntryDbModel, Exception]:
+            if entry.user_id != test_user_id:
+                return Err(NotAuthorizedError())
+            return Ok(entry)
 
-    def all(
+        return __internal
+
+    def foreach_map_schema(
+        self, test_user_id: UUID | None = None
+    ) -> Callable[[Iterable[EntryDbModel]], Iterable[EntrySchema]]:
+        def __internal(entries: Iterable[EntryDbModel]) -> Iterable[EntrySchema]:
+            for entry in entries:
+                is_owner = entry.user_id == test_user_id if test_user_id else False
+                yield EntrySchema.from_db(entry, is_owner=is_owner)
+
+        return __internal
+
+    def get(self, entry_id: UUID, user_id: UUID | None = None):
+        entry_crud = EntryCRUD(self.db)
+        flow = entry_crud.get(entry_id).map(self.map_schema(user_id))
+
+        if flow.is_err():
+            raise flow.err_value
+
+        return flow.value
+
+    def create(self, user_id: UUID, data: CreateEntrySchema) -> EntrySchema:
+        entry_crud = EntryCRUD(self.db)
+
+        flow = (
+            entry_crud.create(user_id, data.title)
+            .map(entry_crud.add())
+            .map(entry_crud.set_id(data.id))
+            .map(entry_crud.add_image(data.image_path, data.image_delete_url))
+            .map(entry_crud.set_description(data.description))
+            .map(entry_crud.set_warning_level(data.warning_level))
+            .map(entry_crud.set_coordinate(data.longitude, data.latitude))
+            .and_then(entry_crud.set_categories(data.categories))
+            .map(entry_crud.set_create_date(data.create_date))
+            .map(entry_crud.commit())
+            .map(self.map_schema(user_id))
+        )
+
+        if flow.is_err():
+            raise flow.err_value
+
+        return flow.value
+
+    def get_all(
         self,
         page_info: Pagination,
         user_id: UUID | None = None,
-        owner_id: UUID | None = None,
         coordinate: Coordinate | None = None,
         date_from: datetime.datetime | None = None,
-        warning_level: WarningLevel | warning_levels | None = None,
-        deleted: bool | None = None,
-    ) -> Iterable[EntrySchema]:
-        entries = self.crud.all(
-            user_id=user_id,
-            owner_id=owner_id,
-            coordinate=coordinate,
-            page_info=page_info,
-            date_from=date_from,
-            warning_level=warning_level,
-            deleted=deleted,
+        warning_level: warning_levels | None = None,
+    ):
+
+        entry_crud = EntryCRUD(self.db)
+        flow = (
+            entry_crud.query()
+            .map(entry_crud.filter_deleted(user_id=user_id))
+            .map(entry_crud.filter_by_date_from(date_from))
+            .map(entry_crud.filter_by_warning_level(warning_level))
+            .map(entry_crud.order_by_coordinate(coordinate))
+            .map(entry_crud.all(page_info))
+            .map(self.foreach_map_schema(user_id))
         )
-        for entry in entries:
-            is_owner = False
-            if owner_id is not None:
-                is_owner = entry.user_id == owner_id
-            elif user_id is not None:
-                is_owner = entry.user_id == user_id
 
-            api_entry = EntrySchema.from_db(entry, is_owner=is_owner)
+        if flow.is_err():
+            raise flow.err_value
 
-            yield api_entry
+        return flow.value
 
-    def update_entry(self, entry_id: UUID, user_id: UUID, update_entry: UpdateEntrySchema) -> EntrySchema:
-        old_entry = self.crud.get(entry_id)
+    def get_all_by_owner(
+        self,
+        page_info: Pagination,
+        owner_id: UUID,
+        coordinate: Coordinate | None = None,
+        date_from: datetime.datetime | None = None,
+        warning_level: warning_levels | None = None,
+    ):
 
-        if old_entry.user_id != user_id:
-            raise NotAuthorizedError()
+        entry_crud = EntryCRUD(self.db)
+        flow = (
+            entry_crud.query()
+            .map(entry_crud.filter_by_user(user_id=owner_id))
+            .map(entry_crud.filter_deleted(user_id=owner_id))
+            .map(entry_crud.filter_by_date_from(date_from))
+            .map(entry_crud.filter_by_warning_level(warning_level))
+            .map(entry_crud.order_by_coordinate(coordinate))
+            .map(entry_crud.all(page_info))
+            .map(self.foreach_map_schema(owner_id))
+        )
 
-        entry = self.crud.update(entry_id, update_entry)
+        if flow.is_err():
+            raise flow.err_value
 
-        api_entry = EntrySchema.from_db(entry)
-        api_entry.is_owner = old_entry.user_id == user_id
-        return api_entry
+        return flow.value
 
-    def create(self, user_id: UUID, data: CreateEntrySchema) -> EntrySchema:
-        entry = self.crud.create(user_id, data)
+    def delete(self, entry_id: UUID, user_id: UUID):
+        entry_crud = EntryCRUD(self.db)
+        flow = entry_crud.get(entry_id).map(entry_crud.delete(user_id=user_id)).map(entry_crud.commit())
 
-        api_entry = EntrySchema.from_db(entry)
-        api_entry.is_owner = True
-        return api_entry
+        if flow.is_err():
+            raise flow.err_value
 
-    def delete(self, entry_id: UUID, user_id: UUID) -> bool:
-        return self.crud.delete(entry_id=entry_id, user_id=user_id)
+    def deleted_entries(self, page_info: Pagination, user_id: UUID) -> Iterable[EntrySchema]:
+
+        entry_crud = EntryCRUD(self.db)
+        flow = (
+            entry_crud.query()
+            .map(entry_crud.filter_owner_deleted())
+            .map(entry_crud.filter_show_deleted(user_id=user_id))
+            .map(entry_crud.all(page_info))
+            .map(self.foreach_map_schema(user_id))
+        )
+
+        if flow.is_err():
+            raise flow.err_value
+
+        return flow.value
+
+    def update(self, entry_id: UUID, user_id: UUID, update_entry: UpdateEntrySchema) -> EntrySchema:
+        entry_crud = EntryCRUD(self.db)
+        flow = (
+            entry_crud.get(entry_id)
+            .and_then(self.test_owner(user_id))
+            .map(entry_crud.set_title(update_entry.title))
+            .map(entry_crud.add_image(update_entry.image_path, update_entry.image_delete_url))
+            .map(entry_crud.set_description(update_entry.description))
+            .map(entry_crud.set_warning_level(update_entry.warning_level))
+            .map(entry_crud.set_coordinate(update_entry.longitude, update_entry.latitude))
+            .and_then(entry_crud.set_categories(update_entry.categories))
+            .map(entry_crud.commit())
+            .map(self.map_schema(user_id))
+        )
+
+        if flow.is_err():
+            raise flow.err_value
+
+        return flow.value
