@@ -2,6 +2,9 @@
 
 ## Develop
 
+## v0.4.1
+- Remove: mark_to_delete_flag
+
 ## v0.4
 - Add: Undo deleted entries
 - Refactor: EntryCRUD
