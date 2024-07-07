@@ -168,3 +168,17 @@ class EntryService:
             raise flow.err_value
 
         return flow.value
+
+    def undo_deleted_entry(self, entry_id: UUID, user_id: UUID) -> EntrySchema:
+        entry_crud = EntryCRUD(self.db)
+        flow = (
+            entry_crud.get(entry_id)
+            .map(entry_crud.undo_delete(user_id))
+            .map(entry_crud.commit())
+            .map(self.map_schema(user_id))
+        )
+
+        if flow.is_err():
+            raise flow.err_value
+
+        return flow.value

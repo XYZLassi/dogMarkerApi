@@ -55,6 +55,15 @@ class EntryCRUD:
 
         return __internal
 
+    def undo_delete(self, user_id: UUID) -> Callable[[EntryDbModel], EntryDbModel]:
+        def __internal(entry: EntryDbModel) -> EntryDbModel:
+            hidden_entry = self.db.query(HiddenEntry).filter_by(entry_id=entry.id, user_id=user_id).first()
+            if hidden_entry:
+                self.db.delete(hidden_entry)
+            return entry
+
+        return __internal
+
     def commit(self) -> Callable[[EntryDbModel], EntryDbModel]:
         def __internal(entry: EntryDbModel) -> EntryDbModel:
             self.db.commit()
@@ -220,12 +229,6 @@ class EntryCRUD:
 
     def filter_owner_deleted(self) -> Callable[[Query[Type[EntryDbModel]]], Query[Type[EntryDbModel]]]:
         def __internal(query: Query[Type[EntryDbModel]]) -> Query[Type[EntryDbModel]]:
-            sub_query = (
-                self.db.query(count(HiddenEntry.user_id).label("count"))
-                .filter(HiddenEntry.user_id == EntryDbModel.user_id)
-                .subquery()
-            )
-            query = query.filter(sub_query == 0)
             return query
 
         return __internal

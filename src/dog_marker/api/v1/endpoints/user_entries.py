@@ -74,3 +74,13 @@ async def get_trashed_entries(
 ) -> Iterable:
     entries = entry_service.deleted_entries(page_info=page_info, user_id=user_id)
     return entries
+
+
+@router.post("/{user_id}/entries/trash/{entry_id}/undo", response_model=EntrySchema, operation_id="undo_trashed_entry")
+async def post_undo_deleted_entry(
+    user_id: UUID,
+    entry_id: UUID,
+    entry_service: EntryService = Depends(get_service(EntryService)),
+) -> Iterable:
+    entries = entry_service.undo_deleted_entry(entry_id=entry_id, user_id=user_id)
+    return entries
