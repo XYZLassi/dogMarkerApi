@@ -9,7 +9,9 @@ from .dependecies import get_service, query_pagination, authenticate_app
 from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
 from ..services import EntryService
 
-router = APIRouter(dependencies=[Depends(authenticate_app)], )
+router = APIRouter(
+    dependencies=[Depends(authenticate_app)],
+)
 
 
 @router.get("/{user_id}/entries", response_model=list[EntrySchema], operation_id="get_user_entries")
