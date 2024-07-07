@@ -5,9 +5,9 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, ConfigDict
 
-from dog_marker.database.schemas import Entry, warning_levels
+from dog_marker.database.models import EntryDbModel
+from dog_marker.database.schemas import warning_levels, WarningLevel
 from dog_marker.dtypes.coordinate import Longitude, Latitude
-
 from .category import CategorySchema
 
 
@@ -28,7 +28,7 @@ class EntrySchema(BaseModel):
     is_owner: bool = False
 
     @staticmethod
-    def from_db(entry: Entry, is_owner: bool = False) -> EntrySchema:
+    def from_db(entry: EntryDbModel, is_owner: bool = False) -> EntrySchema:
         return EntrySchema(
             id=entry.id,
             title=entry.title,
@@ -37,7 +37,7 @@ class EntrySchema(BaseModel):
             image_delete_url=entry.image_delete_url if is_owner else None,
             longitude=entry.longitude,
             latitude=entry.latitude,
-            warning_level=entry.warning_level.to_literal(),
+            warning_level=WarningLevel(entry.warning_level).to_literal(),
             categories=[category.key for category in entry.categories],
             category_infos=[CategorySchema.from_db(category) for category in entry.categories],
             create_date=entry.create_date,

@@ -2,6 +2,11 @@
 
 ## Develop
 
+## v0.4
+- Add: Undo deleted entries
+- Refactor: EntryCRUD
+- Add: Trash for entries
+
 ## v0.3
 
 - Add: Entity-Categories

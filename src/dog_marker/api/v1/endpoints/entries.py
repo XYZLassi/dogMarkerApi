@@ -24,7 +24,7 @@ async def get_all_entries(
     warning_level: warning_levels = "information",
     entry_service: EntryService = Depends(get_service(EntryService)),
 ):
-    entries = entry_service.all(
+    entries = entry_service.get_all(
         page_info=page_info,
         user_id=user_id,
         coordinate=coordinate,
@@ -35,6 +35,8 @@ async def get_all_entries(
 
 
 @router.get("/{entry_id}", response_model=Optional[EntrySchema], operation_id="get_entry")
-async def get_entry_by_id(entry_id: UUID, entry_service: EntryService = Depends(get_service(EntryService))):
-    entry = entry_service.get(entry_id)
+async def get_entry_by_id(
+    entry_id: UUID, user_id: UUID | None = None, entry_service: EntryService = Depends(get_service(EntryService))
+):
+    entry = entry_service.get(entry_id, user_id=user_id)
     return entry
