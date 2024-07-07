@@ -19,12 +19,12 @@ async def get_user_entries(
     page_info: Pagination = Depends(query_pagination),
     entry_service: EntryService = Depends(get_service(EntryService)),
 ) -> Iterable[EntrySchema]:
-    new_entry = entry_service.all(
+    entries = entry_service.all(
         page_info=page_info,
         owner_id=user_id,
         warning_level=warning_level,
     )
-    return new_entry
+    return entries
 
 
 @router.post(
@@ -64,3 +64,17 @@ async def delete_entry_for_user(
     user_id: UUID, entry_id: UUID, entry_service: EntryService = Depends(get_service(EntryService))
 ) -> None:
     entry_service.delete(entry_id, user_id)
+
+
+@router.get("/{user_id}/entries/trash", response_model=list[EntrySchema], operation_id="get_trashed_user_entries")
+async def get_trashed_entries(
+    user_id: UUID,
+    page_info: Pagination = Depends(query_pagination),
+    entry_service: EntryService = Depends(get_service(EntryService)),
+) -> Iterable:
+    entries = entry_service.all(
+        page_info=page_info,
+        owner_id=user_id,
+        deleted=True,
+    )
+    return entries

@@ -32,6 +32,7 @@ class EntryService:
         coordinate: Coordinate | None = None,
         date_from: datetime.datetime | None = None,
         warning_level: WarningLevel | warning_levels | None = None,
+        deleted: bool | None = None,
     ) -> Iterable[EntrySchema]:
         entries = self.crud.all(
             user_id=user_id,
@@ -40,6 +41,7 @@ class EntryService:
             page_info=page_info,
             date_from=date_from,
             warning_level=warning_level,
+            deleted=deleted,
         )
         for entry in entries:
             is_owner = False

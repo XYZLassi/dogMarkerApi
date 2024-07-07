@@ -60,12 +60,14 @@ class EntryCRUD:
         coordinate: Coordinate | None = None,
         date_from: datetime | None = None,
         warning_level: WarningLevel | warning_levels | None = None,
+        deleted: bool | None = None,
     ) -> Iterable[Entry]:
         # noinspection PyTypeChecker
         query: Query[EntryDbModel] = self.db.query(EntryDbModel)
-        query = query.filter_by(mark_to_delete=False)
+        query = query.filter_by(mark_to_delete=deleted or False)
 
         if owner_id is not None:
+            # noinspection PyTypeChecker
             query = query.filter(EntryDbModel.user_id == owner_id)
         elif user_id is not None:
             query = query.join(

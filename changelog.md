@@ -1,6 +1,7 @@
 # Changelog
 
 ## Develop
+- Add: Trash for entries
 
 ## v0.3
 
