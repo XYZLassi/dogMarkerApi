@@ -2,6 +2,7 @@
 
 ## Develop
 - Fix #11: Trash not working for own entries
+- Add: create_date and update_date to hidden_entries
 
 ## v0.4.3
 - Fix: Dependencies for user_entries

@@ -9,7 +9,6 @@ from sqlalchemy import (
     Double,
     DateTime,
     func,
-    Boolean,
     CheckConstraint,
     Index,
     Integer,
@@ -17,10 +16,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
-from dog_marker.database.schemas import WarningLevel
-from ..base import Base
-
 from .mixin.category_mixin import CategoryMixin
+from ..base import Base
 
 
 class EntryImageDbModel(Base):
@@ -64,6 +61,7 @@ class EntryDbModel(Base, CategoryMixin):
 
     longitude = Column(Double, nullable=False)
     latitude = Column(Double, nullable=False)
+
     create_date = Column(
         DateTime(timezone=True),
         nullable=False,

@@ -1,4 +1,6 @@
-from sqlalchemy import Column, UUID, ForeignKey, PrimaryKeyConstraint
+from datetime import datetime
+
+from sqlalchemy import Column, UUID, ForeignKey, PrimaryKeyConstraint, DateTime, func
 
 from ..base import Base
 
@@ -9,3 +11,17 @@ class HiddenEntry(Base):
 
     entry_id = Column(ForeignKey("entries.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(UUID(as_uuid=True), nullable=False)
+
+    create_date = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        server_default=func.now(),
+    )
+    update_date = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=datetime.now,
+    )
