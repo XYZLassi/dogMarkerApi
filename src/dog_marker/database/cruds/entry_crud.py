@@ -1,5 +1,5 @@
 import datetime
-from operator import and_
+from operator import and_, or_
 from typing import Callable, Type, Iterable
 from uuid import UUID
 
@@ -197,11 +197,18 @@ class EntryCRUD:
 
         return __internal
 
-    def filter_owner_deleted(self) -> Callable[[Query[Type[EntryDbModel]]], Query[Type[EntryDbModel]]]:
+    def filter_owner_deleted(
+        self, ignore_ids: list[UUID] | None = None
+    ) -> Callable[[Query[Type[EntryDbModel]]], Query[Type[EntryDbModel]]]:
+        ignore_ids = ignore_ids or list()
+
         def __internal(query: Query[Type[EntryDbModel]]) -> Query[Type[EntryDbModel]]:
             query = query.filter(
-                ~exists().where(
-                    and_(HiddenEntry.user_id == EntryDbModel.user_id, HiddenEntry.entry_id == EntryDbModel.id)
+                or_(
+                    EntryDbModel.user_id.in_(ignore_ids),
+                    ~exists().where(
+                        and_(HiddenEntry.user_id == EntryDbModel.user_id, HiddenEntry.entry_id == EntryDbModel.id)
+                    ),
                 )
             )
             return query

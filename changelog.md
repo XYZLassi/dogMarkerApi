@@ -1,6 +1,7 @@
 # Changelog
 
 ## Develop
+- Fix #11: Trash not working for own entries
 
 ## v0.4.3
 - Fix: Dependencies for user_entries

@@ -138,7 +138,7 @@ class EntryService:
         entry_crud = EntryCRUD(self.db)
         flow = (
             entry_crud.query()
-            .map(entry_crud.filter_owner_deleted())
+            .map(entry_crud.filter_owner_deleted([user_id]))
             .map(entry_crud.filter_show_trash(user_id=user_id))
             .map(entry_crud.all(page_info))
             .map(self.foreach_map_schema(user_id))
