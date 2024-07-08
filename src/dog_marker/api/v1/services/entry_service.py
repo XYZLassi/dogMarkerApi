@@ -127,28 +127,6 @@ class EntryService:
 
         return flow.value
 
-    def delete(self, entry_id: UUID, user_id: UUID):
-        entry_crud = EntryCRUD(self.db)
-        flow = entry_crud.get(entry_id).map(entry_crud.delete(user_id=user_id)).map(entry_crud.commit())
-
-        if flow.is_err():
-            raise flow.err_value
-
-    def deleted_entries(self, page_info: Pagination, user_id: UUID) -> Iterable[EntrySchema]:
-        entry_crud = EntryCRUD(self.db)
-        flow = (
-            entry_crud.query()
-            .map(entry_crud.filter_owner_deleted([user_id]))
-            .map(entry_crud.filter_show_trash(user_id=user_id))
-            .map(entry_crud.all(page_info))
-            .map(self.foreach_map_schema(user_id))
-        )
-
-        if flow.is_err():
-            raise flow.err_value
-
-        return flow.value
-
     def update(self, entry_id: UUID, user_id: UUID, update_entry: UpdateEntrySchema) -> EntrySchema:
         entry_crud = EntryCRUD(self.db)
         flow = (
@@ -168,6 +146,28 @@ class EntryService:
             raise flow.err_value
 
         return flow.value
+
+    def deleted_entries(self, page_info: Pagination, user_id: UUID) -> Iterable[EntrySchema]:
+        entry_crud = EntryCRUD(self.db)
+        flow = (
+            entry_crud.query()
+            .map(entry_crud.filter_owner_deleted([user_id]))
+            .map(entry_crud.filter_show_trash(user_id=user_id))
+            .map(entry_crud.all(page_info))
+            .map(self.foreach_map_schema(user_id))
+        )
+
+        if flow.is_err():
+            raise flow.err_value
+
+        return flow.value
+
+    def delete(self, entry_id: UUID, user_id: UUID):
+        entry_crud = EntryCRUD(self.db)
+        flow = entry_crud.get(entry_id).map(entry_crud.delete(user_id=user_id)).map(entry_crud.commit())
+
+        if flow.is_err():
+            raise flow.err_value
 
     def undo_deleted_entry(self, entry_id: UUID, user_id: UUID) -> EntrySchema:
         entry_crud = EntryCRUD(self.db)

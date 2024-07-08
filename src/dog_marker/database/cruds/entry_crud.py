@@ -50,6 +50,10 @@ class EntryCRUD:
             if not hidden_entry:
                 hidden_entry = HiddenEntry(entry_id=entry.id, user_id=user_id)
                 self.db.add(hidden_entry)
+
+                if entry.user_id == user_id:
+                    entry.update_date = datetime.datetime.utcnow()
+
             return entry
 
         return __internal
@@ -59,6 +63,9 @@ class EntryCRUD:
             hidden_entry = self.db.query(HiddenEntry).filter_by(entry_id=entry.id, user_id=user_id).first()
             if hidden_entry:
                 self.db.delete(hidden_entry)
+
+                if entry.user_id == user_id:
+                    entry.update_date = datetime.datetime.utcnow()
             return entry
 
         return __internal
