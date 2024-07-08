@@ -26,6 +26,7 @@ class EntrySchema(BaseModel):
     create_date: datetime
     update_date: datetime
     is_owner: bool = False
+    is_deleted: bool = False
 
     @staticmethod
     def from_db(entry: EntryDbModel, is_owner: bool = False) -> EntrySchema:
@@ -43,6 +44,7 @@ class EntrySchema(BaseModel):
             create_date=entry.create_date,
             update_date=entry.update_date,
             is_owner=is_owner,
+            is_deleted=entry.is_deleted,
         )
 
 

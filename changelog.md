@@ -4,6 +4,7 @@
 - Fix #11: Trash not working for own entries
 - Add: create_date and update_date to hidden_entries
 - Add: Add update update_date if delete or undo delete
+- Add: EntryDbModel.is_deleted
 
 ## v0.4.3
 - Fix: Dependencies for user_entries

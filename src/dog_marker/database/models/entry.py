@@ -14,8 +14,9 @@ from sqlalchemy import (
     Integer,
     ForeignKey,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped
 
+from .hidden_entry import HiddenEntry
 from .mixin.category_mixin import CategoryMixin
 from ..base import Base
 
@@ -53,6 +54,8 @@ class EntryDbModel(Base, CategoryMixin):
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
 
+    hidden_entries: Mapped[list[HiddenEntry]] = relationship("HiddenEntry")
+
     image_info = relationship(
         "EntryImageDbModel", uselist=False, order_by="desc(EntryImageDbModel.id)", back_populates="entry"
     )
@@ -75,6 +78,13 @@ class EntryDbModel(Base, CategoryMixin):
         server_default=func.now(),
         onupdate=datetime.now,
     )
+
+    @property
+    def is_deleted(self) -> bool:
+        for h_entry in self.hidden_entries:
+            if h_entry.user_id == self.user_id and h_entry.entry_id == self.id:
+                return True
+        return False
 
     @property
     def image_path(self) -> str | None:
