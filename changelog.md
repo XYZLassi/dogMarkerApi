@@ -5,6 +5,7 @@
 - Add: create_date and update_date to hidden_entries
 - Add: Add update update_date if delete or undo delete
 - Add: EntryDbModel.is_deleted
+- Add: Basic BackgroundTask for delete entries
 
 ## v0.4.3
 - Fix: Dependencies for user_entries

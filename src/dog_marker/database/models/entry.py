@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
 
@@ -26,7 +28,7 @@ class EntryImageDbModel(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     entry_id = Column(ForeignKey("entries.id", ondelete="CASCADE"), nullable=False)
-    entry = relationship("EntryDbModel", back_populates="image_info")
+    entry: Mapped[EntryDbModel] = relationship("EntryDbModel", back_populates="image_infos")
 
     image_path = Column(String, nullable=True)
     image_delete_url = Column(String, nullable=True)
@@ -54,10 +56,10 @@ class EntryDbModel(Base, CategoryMixin):
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
 
-    hidden_entries: Mapped[list[HiddenEntry]] = relationship("HiddenEntry")
+    hidden_entries: Mapped[list[HiddenEntry]] = relationship("HiddenEntry", cascade="all,delete")
 
-    image_info = relationship(
-        "EntryImageDbModel", uselist=False, order_by="desc(EntryImageDbModel.id)", back_populates="entry"
+    image_infos: Mapped[list[EntryImageDbModel]] = relationship(
+        "EntryImageDbModel", order_by="desc(EntryImageDbModel.id)", back_populates="entry"
     )
 
     warning_level = Column(Integer, nullable=False, default=0, server_default="0")
@@ -88,11 +90,11 @@ class EntryDbModel(Base, CategoryMixin):
 
     @property
     def image_path(self) -> str | None:
-        return self.image_info.image_path if self.image_info else None
+        return self.image_infos[0].image_path if self.image_infos else None
 
     @property
     def image_delete_url(self) -> str | None:
-        return self.image_info.image_delete_url if self.image_info else None
+        return self.image_infos[0].image_delete_url if self.image_infos else None
 
     @staticmethod  # Todo: Right Methode in sqlalchemey
     def calc_distance(longitude, latitude):

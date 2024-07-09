@@ -1,6 +1,6 @@
 import datetime
 from operator import and_, or_
-from typing import Callable, Type, Iterable
+from typing import Callable, Type
 from uuid import UUID
 
 from result import Result, Err, Ok
@@ -25,11 +25,17 @@ class EntryCRUD:
             return Err(DbNotFoundError(f"Cannot find entry with id {entry_id}"))
         return Ok(result)
 
+    def get_image(self, image_id: int) -> Result[EntryImageDbModel, Exception]:
+        result: EntryImageDbModel = self.db.query(EntryImageDbModel).get(image_id)
+        if result is None:
+            return Err(DbNotFoundError(f"Cannot find entry-image with id {image_id}"))
+        return Ok(result)
+
     def query(self) -> Result[Query[Type[EntryDbModel]], Exception]:
         return Ok(self.db.query(EntryDbModel))
 
-    def all(self, page_info: Pagination) -> Callable[[Query[Type[EntryDbModel]]], Iterable[EntryDbModel]]:
-        def __internal(query: Query[Type[EntryDbModel]]) -> Iterable[EntryDbModel]:
+    def all(self, page_info: Pagination | None = None) -> Callable[[Query[Type[EntryDbModel]]], list[EntryDbModel]]:
+        def __internal(query: Query[Type[EntryDbModel]]) -> list[EntryDbModel]:
             if page_info:
                 query = query.offset(page_info.skip).limit(page_info.limit)
             # noinspection PyTypeChecker
@@ -199,6 +205,17 @@ class EntryCRUD:
         def __internal(query: Query[Type[EntryDbModel]]) -> Query[Type[EntryDbModel]]:
             query = query.filter(
                 exists().where(and_(HiddenEntry.user_id == user_id, HiddenEntry.entry_id == EntryDbModel.id))
+            )
+            return query
+
+        return __internal
+
+    def filter_show_owner_deleted(self) -> Callable[[Query[Type[EntryDbModel]]], Query[Type[EntryDbModel]]]:
+        def __internal(query: Query[Type[EntryDbModel]]) -> Query[Type[EntryDbModel]]:
+            query = query.filter(
+                exists().where(
+                    and_(HiddenEntry.user_id == EntryDbModel.user_id, HiddenEntry.entry_id == EntryDbModel.id)
+                )
             )
             return query
 

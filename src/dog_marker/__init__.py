@@ -1,17 +1,28 @@
-from fastapi import FastAPI, Request, Response
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+import functools
+from contextlib import asynccontextmanager
+
+from apscheduler.jobstores.memory import MemoryJobStore
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from fastapi import FastAPI
+from pytz import utc
 
 from .configs import Config
-from .database.base import Base
+from .middlewares import register_middlewares
+from .tasks import register_background_tasks
+from .database.base import create_db
+
+jobstores = {"default": MemoryJobStore()}
 
 
 def create_app(config: Config = Config()) -> FastAPI:
-    app = FastAPI(title="DogMarker - API")
+    scheduler = AsyncIOScheduler(jobstores=jobstores, timezone=utc)
 
-    bind_config(app, config)
-    bind_db(app, config)
-    bind_charset(app, config)
+    app = FastAPI(title="DogMarker - API", lifespan=functools.partial(lifespan, scheduler=scheduler))
+
+    session_local = create_db(app, config)
+
+    register_middlewares(app, config, session_local)
+    register_background_tasks(app, config, scheduler, session_local)
 
     from .api.v1 import api_v1
 
@@ -20,60 +31,8 @@ def create_app(config: Config = Config()) -> FastAPI:
     return app
 
 
-def bind_config(app: FastAPI, config: Config) -> None:
-    @app.middleware("http")
-    async def db_session_middleware(request: Request, call_next):
-        request.state.config = config
-        response = await call_next(request)
-        return response
-
-
-def bind_charset(app: FastAPI, config: Config) -> None:
-    @app.middleware("http")
-    async def db_session_middleware(request: Request, call_next):
-        response: Response = await call_next(request)
-        content_type: str = response.headers.get("content-type")
-
-        if content_type and content_type.find("charset") == -1:
-            content_type = f"{content_type}; charset={response.charset}"
-            response.headers["content-type"] = content_type
-
-        return response
-
-
-def bind_db(app: FastAPI, config: Config) -> None:
-    is_postgres = config.DATABASE_URL.startswith("postgresql")
-
-    if is_postgres:
-        engine = create_engine(
-            config.DATABASE_URL, pool_size=config.POSTGRES_DB_POOL_SIZE, max_overflow=config.POSTGRES_DB_MAX_OVERFLOW
-        )
-    else:
-        engine = create_engine(config.DATABASE_URL, connect_args={"check_same_thread": False})
-
-    session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    @app.on_event("startup")
-    def on_startup() -> None:
-        if config.CREATE_DB:
-            if config.DATABASE_URL.startswith("postgresql"):
-                from alembic.config import Config
-                from alembic import command
-
-                alembic_cfg = Config()
-                alembic_cfg.set_main_option("script_location", "alembic_postgres")
-                alembic_cfg.set_main_option("sqlalchemy.url", config.DATABASE_URL)
-                command.upgrade(alembic_cfg, "head")
-
-            else:
-                Base.metadata.create_all(bind=engine)
-
-    @app.middleware("http")
-    async def db_session_middleware(request: Request, call_next):
-        response = Response("Internal server error", status_code=500)
-        try:
-            request.state.db = session_local()
-            response = await call_next(request)
-        finally:
-            request.state.db.close()
-        return response
+@asynccontextmanager
+async def lifespan(app: FastAPI, scheduler: AsyncIOScheduler):
+    scheduler.start()
+    yield
+    scheduler.shutdown()
