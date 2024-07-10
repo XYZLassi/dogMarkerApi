@@ -27,7 +27,7 @@ class EntryImageDbModel(Base):
     __tablename__ = "entry_images"
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    entry_id = Column(ForeignKey("entries.id", ondelete="CASCADE"), nullable=False)
+    entry_id: UUID = Column(ForeignKey("entries.id", ondelete="CASCADE"), nullable=False)
     entry: Mapped[EntryDbModel] = relationship("EntryDbModel", back_populates="image_infos")
 
     image_path = Column(String, nullable=True)
@@ -53,8 +53,8 @@ class EntryDbModel(Base, CategoryMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), index=True, nullable=False)
-    title = Column(String, nullable=False)
-    description = Column(Text, nullable=True)
+    title: str = Column(String, nullable=False)
+    description: str = Column(Text, nullable=True)
 
     hidden_entries: Mapped[list[HiddenEntry]] = relationship("HiddenEntry", cascade="all,delete")
 

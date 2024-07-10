@@ -7,7 +7,9 @@ from uuid import UUID
 
 import requests
 from apscheduler.schedulers.base import BaseScheduler
+from bs4 import BeautifulSoup
 from fastapi import FastAPI
+from requests import session as requests_session
 from sqlalchemy.orm import Session
 
 from .configs import Config
@@ -96,11 +98,28 @@ def task_delete_image(image_id: int, local_session: Callable[[], Session]) -> No
 
         image = flow.value
 
-        response = requests.get(image.image_delete_url)
-        if response.status_code != 200:
-            return
+        if image.image_path:
+            check_response = requests.get(image.image_path)
+            if check_response.status_code == 404:
+                session.delete(image)
+                session.commit()
+                return
 
-        session.delete(image)
-        session.commit()
+        if not image.image_delete_url:
+            session.delete(image)
+            session.commit()
+
+        # Todo: Only for vgy.me
+        with requests_session() as s:
+            check_delete_response = s.get(image.image_delete_url)
+
+            soup = BeautifulSoup(
+                check_delete_response.text,
+            )
+            token = soup.find("input", {"name": "_token"}).attrs["value"]
+
+            delete_data = {"confirm_delete": "1", "_token": token}
+
+            s.post(image.image_delete_url, json=delete_data)
 
         return

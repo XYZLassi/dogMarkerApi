@@ -20,13 +20,13 @@ class EntryCRUD:
         self.db = db
 
     def get(self, entry_id: UUID) -> Result[EntryDbModel, Exception]:
-        result: EntryDbModel = self.db.query(EntryDbModel).get(entry_id)
+        result: EntryDbModel | None = self.db.query(EntryDbModel).get(entry_id)
         if result is None:
             return Err(DbNotFoundError(f"Cannot find entry with id {entry_id}"))
         return Ok(result)
 
     def get_image(self, image_id: int) -> Result[EntryImageDbModel, Exception]:
-        result: EntryImageDbModel = self.db.query(EntryImageDbModel).get(image_id)
+        result: EntryImageDbModel | None = self.db.query(EntryImageDbModel).get(image_id)
         if result is None:
             return Err(DbNotFoundError(f"Cannot find entry-image with id {image_id}"))
         return Ok(result)
@@ -39,7 +39,7 @@ class EntryCRUD:
             if page_info:
                 query = query.offset(page_info.skip).limit(page_info.limit)
             # noinspection PyTypeChecker
-            return query.all()
+            return query.all()  # type: ignore
 
         return __internal
 

@@ -38,8 +38,8 @@ class EntrySchema(BaseModel):
             image_delete_url=entry.image_delete_url if is_owner else None,
             longitude=entry.longitude,
             latitude=entry.latitude,
-            warning_level=WarningLevel(entry.warning_level).to_literal(),
-            categories=[category.key for category in entry.categories],
+            warning_level=WarningLevel(entry.warning_level or 0).to_literal(),
+            categories=[category.key for category in entry.categories],  # type: ignore[attr-defined]
             category_infos=[CategorySchema.from_db(category) for category in entry.categories],
             create_date=entry.create_date,
             update_date=entry.update_date,
