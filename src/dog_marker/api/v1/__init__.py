@@ -4,7 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from dog_marker.database.errors import DbNotFoundError
-from .errors import NotAuthorizedError
+from .errors import NotAuthorizedError, EntityNotFound
 from .endpoints.entries import router as router_entries
 from .endpoints.user_entries import router as router_user_entries
 from .endpoints.categories import router as router_categories
@@ -27,7 +27,8 @@ async def not_authorized_exception_handler(request: Request, exc: NotAuthorizedE
 
 
 @api_v1.exception_handler(DbNotFoundError)
-async def db_not_found_exception_handler(request: Request, exc: DbNotFoundError):
+@api_v1.exception_handler(EntityNotFound)
+async def db_not_found_exception_handler(request: Request, exc: DbNotFoundError | EntityNotFound):
     return JSONResponse(
         status_code=404,
         content={"message": exc.msg},

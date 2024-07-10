@@ -11,6 +11,7 @@ from dog_marker.database.schemas import warning_levels
 from dog_marker.dtypes.coordinate import Coordinate
 from dog_marker.dtypes.pagination import Pagination
 from .. import NotAuthorizedError
+from ..errors import EntityNotFound
 from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
 
 
@@ -34,6 +35,14 @@ class EntryService:
 
         return __internal
 
+    def check_is_marked_to_delete(self):
+        def __internal(entry: EntryDbModel) -> Result[EntryDbModel, Exception]:
+            if entry.mark_to_delete:
+                return Err(EntityNotFound(f"Cannot find entry with id {entry.id}"))
+            return Ok(entry)
+
+        return __internal
+
     def foreach_map_schema(
         self, test_user_id: UUID | None = None
     ) -> Callable[[Iterable[EntryDbModel]], Iterable[EntrySchema]]:
@@ -46,7 +55,7 @@ class EntryService:
 
     def get(self, entry_id: UUID, user_id: UUID | None = None):
         entry_crud = EntryCRUD(self.db)
-        flow = entry_crud.get(entry_id).map(self.map_schema(user_id))
+        flow = entry_crud.get(entry_id).and_then(self.check_is_marked_to_delete()).map(self.map_schema(user_id))
 
         if flow.is_err():
             raise flow.err_value
@@ -87,6 +96,7 @@ class EntryService:
         entry_crud = EntryCRUD(self.db)
         flow = (
             entry_crud.query()
+            .map(entry_crud.filter_marked_to_delete())
             .map(entry_crud.filter_owner_deleted())
             .map(entry_crud.filter_user_deleted(user_id=user_id))
             .map(entry_crud.filter_by_date_from(date_from))
@@ -113,6 +123,7 @@ class EntryService:
         entry_crud = EntryCRUD(self.db)
         flow = (
             entry_crud.query()
+            .map(entry_crud.filter_marked_to_delete())
             .map(entry_crud.filter_by_user(user_id=owner_id))
             .map(entry_crud.filter_owner_deleted())
             .map(entry_crud.filter_by_date_from(date_from))
@@ -131,6 +142,7 @@ class EntryService:
         entry_crud = EntryCRUD(self.db)
         flow = (
             entry_crud.get(entry_id)
+            .and_then(self.check_is_marked_to_delete())
             .and_then(self.test_owner(user_id))
             .map(entry_crud.set_title(update_entry.title))
             .map(entry_crud.add_image(update_entry.image_path, update_entry.image_delete_url))
@@ -151,6 +163,7 @@ class EntryService:
         entry_crud = EntryCRUD(self.db)
         flow = (
             entry_crud.query()
+            .map(entry_crud.filter_marked_to_delete())
             .map(entry_crud.filter_owner_deleted([user_id]))
             .map(entry_crud.filter_show_trash(user_id=user_id))
             .map(entry_crud.all(page_info))
@@ -164,7 +177,12 @@ class EntryService:
 
     def delete(self, entry_id: UUID, user_id: UUID):
         entry_crud = EntryCRUD(self.db)
-        flow = entry_crud.get(entry_id).map(entry_crud.delete(user_id=user_id)).map(entry_crud.commit())
+        flow = (
+            entry_crud.get(entry_id)
+            .and_then(self.check_is_marked_to_delete())
+            .map(entry_crud.delete(user_id=user_id))
+            .map(entry_crud.commit())
+        )
 
         if flow.is_err():
             raise flow.err_value
@@ -173,6 +191,7 @@ class EntryService:
         entry_crud = EntryCRUD(self.db)
         flow = (
             entry_crud.get(entry_id)
+            .and_then(self.check_is_marked_to_delete())
             .map(entry_crud.undo_delete(user_id))
             .map(entry_crud.commit())
             .map(self.map_schema(user_id))

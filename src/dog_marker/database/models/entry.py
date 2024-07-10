@@ -56,6 +56,10 @@ class EntryDbModel(Base, CategoryMixin):
     title: str = Column(String, nullable=False)
     description: str = Column(Text, nullable=True)
 
+    mark_to_delete = Column(
+        DateTime(timezone=True),
+    )
+
     hidden_entries: Mapped[list[HiddenEntry]] = relationship("HiddenEntry", cascade="all,delete")
 
     image_infos: Mapped[list[EntryImageDbModel]] = relationship(

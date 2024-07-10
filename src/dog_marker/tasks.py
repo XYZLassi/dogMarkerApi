@@ -69,7 +69,7 @@ def task_delete_entry(entry_id: UUID, local_session: Callable[[], Session], queu
     with local_session() as session:
         entry_crud = EntryCRUD(session)
 
-        flow = entry_crud.get(entry_id)
+        flow = entry_crud.get(entry_id).map(entry_crud.set_mark_to_delete()).map(entry_crud.commit())
 
         if flow.is_err():
             return  # Todo: LogError

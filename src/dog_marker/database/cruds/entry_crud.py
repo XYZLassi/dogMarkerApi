@@ -6,6 +6,7 @@ from uuid import UUID
 from result import Result, Err, Ok
 from sqlalchemy import desc, exists
 from sqlalchemy.orm import Session, Query
+from sqlalchemy.sql.operators import is_
 
 from ..errors import DbNotFoundError
 from ..models import EntryDbModel, CategoryDbModel, EntryImageDbModel, HiddenEntry
@@ -162,6 +163,14 @@ class EntryCRUD:
 
         return __internal
 
+    def set_mark_to_delete(self) -> Callable[[EntryDbModel], EntryDbModel]:
+        def __internal(entry: EntryDbModel) -> EntryDbModel:
+            if entry.mark_to_delete is None:
+                entry.mark_to_delete = datetime.datetime.utcnow()
+            return entry
+
+        return __internal
+
     def order_by_coordinate(
         self,
         coordinate: Coordinate | None = None,
@@ -247,6 +256,13 @@ class EntryCRUD:
                 query = query.filter(
                     ~exists().where(and_(HiddenEntry.user_id == user_id, HiddenEntry.entry_id == EntryDbModel.id))
                 )
+            return query
+
+        return __internal
+
+    def filter_marked_to_delete(self) -> Callable[[Query[Type[EntryDbModel]]], Query[Type[EntryDbModel]]]:
+        def __internal(query: Query[Type[EntryDbModel]]) -> Query[Type[EntryDbModel]]:
+            query = query.filter(is_(EntryDbModel.mark_to_delete, None))
             return query
 
         return __internal
