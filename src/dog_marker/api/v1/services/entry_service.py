@@ -2,6 +2,7 @@ import datetime
 from typing import Callable, Iterable
 from uuid import UUID
 
+from pydantic import HttpUrl
 from result import Result, Ok, Err
 from sqlalchemy.orm import Session
 
@@ -19,6 +20,26 @@ from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
 class EntryService:
     def __init__(self, db: Session):
         self.db = db
+
+    def check_domain(self, image_path: HttpUrl | None, image_delete_url: HttpUrl | None):
+        # Todo: Dynamic Domains
+        valid_domains = ["vgy.me"]
+        # Check Domain
+        for domain in valid_domains:
+            if image_path and not image_path.host.endswith(domain):
+                continue
+
+            if image_delete_url and not image_delete_url.host.endswith(domain):
+                continue
+
+            break
+        else:
+            if image_path and image_delete_url:
+                raise EntityNotFound(f"{image_path.host} and {image_delete_url.host} are not valid domains or equals")
+            elif image_path:
+                raise EntityNotFound(f"{image_path.host} is not a valid domain")
+            elif image_delete_url:
+                raise EntityNotFound(f"{image_delete_url.host} is not a valid domain")
 
     def map_schema(self, test_user_id: UUID | None = None) -> Callable[[EntryDbModel], EntrySchema]:
         def __internal(entry: EntryDbModel) -> EntrySchema:
@@ -65,11 +86,13 @@ class EntryService:
     def create(self, user_id: UUID, data: CreateEntrySchema) -> EntrySchema:
         entry_crud = EntryCRUD(self.db)
 
+        self.check_domain(data.image_path, data.image_delete_url)
+
         flow = (
             entry_crud.create(user_id, data.title)
             .map(entry_crud.add())
             .map(entry_crud.set_id(data.id))
-            .map(entry_crud.add_image(data.image_path, data.image_delete_url))
+            .map(entry_crud.add_image(str(data.image_path), str(data.image_delete_url)))
             .map(entry_crud.set_description(data.description))
             .map(entry_crud.set_warning_level(data.warning_level))
             .map(entry_crud.set_coordinate(data.longitude, data.latitude))
@@ -138,18 +161,21 @@ class EntryService:
 
         return flow.value
 
-    def update(self, entry_id: UUID, user_id: UUID, update_entry: UpdateEntrySchema) -> EntrySchema:
+    def update(self, entry_id: UUID, user_id: UUID, data: UpdateEntrySchema) -> EntrySchema:
         entry_crud = EntryCRUD(self.db)
+
+        self.check_domain(data.image_path, data.image_delete_url)
+
         flow = (
             entry_crud.get(entry_id)
             .and_then(self.check_is_marked_to_delete())
             .and_then(self.test_owner(user_id))
-            .map(entry_crud.set_title(update_entry.title))
-            .map(entry_crud.add_image(update_entry.image_path, update_entry.image_delete_url))
-            .map(entry_crud.set_description(update_entry.description))
-            .map(entry_crud.set_warning_level(update_entry.warning_level))
-            .map(entry_crud.set_coordinate(update_entry.longitude, update_entry.latitude))
-            .and_then(entry_crud.set_categories(update_entry.categories))
+            .map(entry_crud.set_title(data.title))
+            .map(entry_crud.add_image(str(data.image_path), str(data.image_delete_url)))
+            .map(entry_crud.set_description(data.description))
+            .map(entry_crud.set_warning_level(data.warning_level))
+            .map(entry_crud.set_coordinate(data.longitude, data.latitude))
+            .and_then(entry_crud.set_categories(data.categories))
             .map(entry_crud.commit())
             .map(self.map_schema(user_id))
         )

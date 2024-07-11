@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, HttpUrl
 
 from dog_marker.database.models import EntryDbModel
 from dog_marker.database.schemas import warning_levels, WarningLevel
@@ -16,8 +16,8 @@ class EntrySchema(BaseModel):
     id: UUID
     title: str
     description: str | None
-    image_path: str | None
-    image_delete_url: str | None
+    image_path: HttpUrl | None
+    image_delete_url: HttpUrl | None
     longitude: Longitude
     latitude: Latitude
     warning_level: warning_levels
@@ -52,8 +52,8 @@ class CreateEntrySchema(BaseModel):
     id: UUID | None = Field(None)
     title: str
     description: str | None = Field(None)
-    image_path: str | None = Field(None)
-    image_delete_url: str | None = Field(None)
+    image_path: HttpUrl | None = Field(None)
+    image_delete_url: HttpUrl | None = Field(None)
     warning_level: warning_levels | None = Field(None)
     longitude: Longitude
     latitude: Latitude
@@ -64,8 +64,8 @@ class CreateEntrySchema(BaseModel):
 class UpdateEntrySchema(BaseModel):
     title: str
     description: str | None
-    image_path: str | None
-    image_delete_url: str | None
+    image_path: HttpUrl | None
+    image_delete_url: HttpUrl | None
     warning_level: warning_levels
     longitude: Longitude
     latitude: Latitude

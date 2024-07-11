@@ -138,12 +138,10 @@ class EntryCRUD:
         def __internal(entry: EntryDbModel) -> EntryDbModel:
             if entry.image_delete_url != image_delete_url or entry.image_path != image_path:
                 new_entry_image = EntryImageDbModel(
-                    entry_id=entry.id,
                     image_path=image_path,
                     image_delete_url=image_delete_url,
                 )
-                # Todo: No Add
-                self.db.add(new_entry_image)
+                entry.image_infos.append(new_entry_image)
             return entry
 
         return __internal
