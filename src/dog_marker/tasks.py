@@ -1,6 +1,7 @@
 __all__ = ["register_background_tasks"]
 
 import functools
+import datetime
 from queue import Queue
 from typing import Callable
 from uuid import UUID
@@ -22,13 +23,16 @@ def register_background_tasks(
     task_queue: Queue[Callable[[], None]] = Queue()
 
     scheduler.add_job(
-        functools.partial(job_execute_tasks, queue=task_queue), trigger="interval", seconds=10, max_instances=1
+        functools.partial(job_execute_tasks, queue=task_queue),
+        trigger="interval",
+        seconds=config.JOB_EXECUTE_INTERVAL_SECONDS,
+        max_instances=1,
     )
 
     scheduler.add_job(
         functools.partial(job_find_deleted_entries, config=config, local_session=local_session, queue=task_queue),
         trigger="interval",
-        seconds=10,
+        seconds=config.JOB_CLEANUP_INTERVAL_SECONDS,
         max_instances=1,
     )
 
@@ -47,7 +51,11 @@ def job_find_deleted_entries(
     with local_session() as session:
         entry_crud = EntryCRUD(session)
 
-        flow = entry_crud.query().map(entry_crud.filter_show_owner_deleted()).map(entry_crud.all())
+        older_than: datetime.datetime | None = None
+        if config.DELETE_TRASH_ENTRIES_AFTER_MINUTES is not None and config.DELETE_TRASH_ENTRIES_AFTER_MINUTES >= 0:
+            time_diff = datetime.timedelta(minutes=config.DELETE_TRASH_ENTRIES_AFTER_MINUTES)
+            older_than = datetime.datetime.utcnow() - time_diff
+        flow = entry_crud.query().map(entry_crud.filter_show_owner_deleted(older_than=older_than)).map(entry_crud.all())
 
         if flow.is_err():
             return  # Todo: LogError

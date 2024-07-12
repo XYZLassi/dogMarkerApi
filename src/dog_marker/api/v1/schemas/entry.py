@@ -16,8 +16,8 @@ class EntrySchema(BaseModel):
     id: UUID
     title: str
     description: str | None
-    image_path: HttpUrl | None
-    image_delete_url: HttpUrl | None
+    image_path: str | None
+    image_delete_url: str | None
     longitude: Longitude
     latitude: Latitude
     warning_level: warning_levels
