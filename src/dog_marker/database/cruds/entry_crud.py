@@ -3,9 +3,9 @@ from typing import Callable, Type
 from uuid import UUID
 
 from result import Result, Err, Ok
-from sqlalchemy import desc, exists
+from sqlalchemy import desc, exists, or_, and_
 from sqlalchemy.orm import Session, Query
-from sqlalchemy.sql.operators import is_, and_, or_
+from sqlalchemy.sql.operators import is_
 
 from ..errors import DbNotFoundError
 from ..models import EntryDbModel, CategoryDbModel, EntryImageDbModel, HiddenEntry
@@ -50,7 +50,7 @@ class EntryCRUD:
 
         return __internal
 
-    def delete(self, user_id: UUID):
+    def delete(self, user_id: UUID, permanent: bool = False):
         def __internal(entry: EntryDbModel) -> EntryDbModel:
             hidden_entry = self.db.query(HiddenEntry).filter_by(entry_id=entry.id, user_id=user_id).first()
             if not hidden_entry:
@@ -59,6 +59,9 @@ class EntryCRUD:
 
                 if entry.user_id == user_id:
                     entry.update_date = datetime.datetime.utcnow()
+
+            if permanent:
+                entry.mark_to_delete = datetime.datetime.utcnow()
 
             return entry
 
@@ -207,15 +210,18 @@ class EntryCRUD:
 
         return __internal
 
-    def filter_show_owner_deleted(self, older_than: datetime.datetime | None = None):
+    def filter_to_delete(self, older_than: datetime.datetime | None = None):
         def __internal(query: Query[Type[EntryDbModel]]) -> Query[Type[EntryDbModel]]:
             and_args = []
             if older_than is not None:
                 and_args.append(HiddenEntry.update_date <= older_than)
 
             query = query.filter(
-                exists().where(
-                    HiddenEntry.user_id == EntryDbModel.user_id, HiddenEntry.entry_id == EntryDbModel.id, *and_args
+                or_(
+                    EntryDbModel.mark_to_delete.is_not(None),
+                    exists().where(
+                        HiddenEntry.user_id == EntryDbModel.user_id, HiddenEntry.entry_id == EntryDbModel.id, *and_args
+                    ),
                 )
             )
             return query

@@ -207,12 +207,12 @@ class EntryService:
 
         return flow.value
 
-    def delete(self, entry_id: UUID, user_id: UUID):
+    def delete(self, entry_id: UUID, user_id: UUID, permanent: bool = False):
         entry_crud = EntryCRUD(self.db)
         flow = (
             entry_crud.get(entry_id)
             .and_then(self.check_is_marked_to_delete())
-            .map(entry_crud.delete(user_id=user_id))
+            .map(entry_crud.delete(user_id=user_id, permanent=permanent))
             .map(entry_crud.commit())
         )
 

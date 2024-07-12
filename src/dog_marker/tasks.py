@@ -55,7 +55,8 @@ def job_find_deleted_entries(
         if config.DELETE_TRASH_ENTRIES_AFTER_MINUTES is not None and config.DELETE_TRASH_ENTRIES_AFTER_MINUTES >= 0:
             time_diff = datetime.timedelta(minutes=config.DELETE_TRASH_ENTRIES_AFTER_MINUTES)
             older_than = datetime.datetime.utcnow() - time_diff
-        flow = entry_crud.query().map(entry_crud.filter_show_owner_deleted(older_than=older_than)).map(entry_crud.all())
+
+        flow = entry_crud.query().map(entry_crud.filter_to_delete(older_than=older_than)).map(entry_crud.all())
 
         if flow.is_err():
             return  # Todo: LogError
@@ -120,6 +121,7 @@ def task_delete_image(image_id: int, local_session: Callable[[], Session]) -> No
         # Todo: Only for vgy.me
         with requests_session() as s:
             check_delete_response = s.get(image.image_delete_url)
+            assert check_delete_response.ok
 
             soup = BeautifulSoup(
                 check_delete_response.text,

@@ -7,6 +7,7 @@
 - Add: EntryDbModel.is_deleted
 - Add: Basic BackgroundTask for delete entries
 - Add: DELETE_TRASH_ENTRIES_AFTER_MINUTES, JOB_EXECUTE_INTERVAL_SECONDS, JOB_CLEANUP_INTERVAL_SECONDS
+- Add: Permanent flag for delete_entry_for_user
 
 ## v0.4.3
 - Fix: Dependencies for user_entries
