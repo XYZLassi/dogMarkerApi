@@ -88,11 +88,14 @@ class EntryService:
 
         self.check_domain(data.image_path, data.image_delete_url)
 
+        image_path = str(data.image_path) if data.image_path else None
+        image_delete_url = data.image_delete_url if data.image_delete_url else None
+
         flow = (
             entry_crud.create(user_id, data.title)
             .map(entry_crud.add())
             .map(entry_crud.set_id(data.id))
-            .map(entry_crud.add_image(str(data.image_path), str(data.image_delete_url)))
+            .map(entry_crud.add_image(image_path, image_delete_url))
             .map(entry_crud.set_description(data.description))
             .map(entry_crud.set_warning_level(data.warning_level))
             .map(entry_crud.set_coordinate(data.longitude, data.latitude))
@@ -166,12 +169,15 @@ class EntryService:
 
         self.check_domain(data.image_path, data.image_delete_url)
 
+        image_path = str(data.image_path) if data.image_path else None
+        image_delete_url = data.image_delete_url if data.image_delete_url else None
+
         flow = (
             entry_crud.get(entry_id)
             .and_then(self.check_is_marked_to_delete())
             .and_then(self.test_owner(user_id))
             .map(entry_crud.set_title(data.title))
-            .map(entry_crud.add_image(str(data.image_path), str(data.image_delete_url)))
+            .map(entry_crud.add_image(image_path, image_delete_url))
             .map(entry_crud.set_description(data.description))
             .map(entry_crud.set_warning_level(data.warning_level))
             .map(entry_crud.set_coordinate(data.longitude, data.latitude))
