@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from dog_marker import Base
+from dog_marker.database.base import Base
 
 
 @pytest.fixture()
