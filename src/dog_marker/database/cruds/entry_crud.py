@@ -260,3 +260,11 @@ class EntryCRUD:
             return query
 
         return __internal
+
+    def filter_older_than(self, older_than: datetime.datetime | None = None):
+        def __internal(query: Query[Type[EntryDbModel]]) -> Query[Type[EntryDbModel]]:
+            if older_than is None:
+                return query
+            return query.filter(EntryDbModel.update_date <= older_than)
+
+        return __internal

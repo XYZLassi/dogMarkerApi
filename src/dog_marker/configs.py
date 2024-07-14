@@ -27,6 +27,7 @@ class Config:
     DELETE_TRASH_ENTRIES_AFTER_MINUTES: int | None = get_int_or_none(
         os.environ.get("DELETE_TRASH_ENTRIES_AFTER_MINUTES", None)
     )
+    DELETE_ENTRIES_AFTER_DAYS: int = get_int(os.environ.get("DELETE_ENTRIES_AFTER_DAYS", 28))
 
     JOB_EXECUTE_INTERVAL_SECONDS: int = get_int(os.environ.get("JOB_EXECUTE_INTERVAL_SECONDS", 10))
     JOB_CLEANUP_INTERVAL_SECONDS: int = get_int(os.environ.get("JOB_CLEANUP_INTERVAL_SECONDS", 600))

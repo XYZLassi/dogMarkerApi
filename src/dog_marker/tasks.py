@@ -36,6 +36,13 @@ def register_background_tasks(
         max_instances=1,
     )
 
+    scheduler.add_job(
+        functools.partial(job_find_old_entries, config=config, local_session=local_session, queue=task_queue),
+        trigger="interval",
+        seconds=config.JOB_CLEANUP_INTERVAL_SECONDS,
+        max_instances=1,
+    )
+
     return task_queue
 
 
@@ -43,6 +50,34 @@ def job_execute_tasks(queue: Queue[Callable[[], None]]):
     if not queue.empty():
         fn = queue.get()
         fn()
+
+
+def job_find_old_entries(
+    config: Config, local_session: Callable[[], Session], queue: Queue[Callable[[], None]]
+) -> None:
+    with local_session() as session:
+        entry_crud = EntryCRUD(session)
+        time_diff = datetime.timedelta(days=config.DELETE_ENTRIES_AFTER_DAYS)
+        older_than = datetime.datetime.utcnow() - time_diff
+
+        flow = (
+            entry_crud.query()
+            .map(entry_crud.filter_marked_to_delete())
+            .map(entry_crud.filter_older_than(older_than=older_than))
+            .map(entry_crud.all())
+        )
+
+        if flow.is_err():
+            return  # Todo: LogError
+
+        for entry in flow.value:
+            fn_delete_entry = functools.partial(
+                task_delete_entry,
+                entry_id=entry.id,
+                local_session=local_session,
+                queue=queue,
+            )
+            queue.put(fn_delete_entry)
 
 
 def job_find_deleted_entries(
@@ -60,9 +95,6 @@ def job_find_deleted_entries(
 
         if flow.is_err():
             return  # Todo: LogError
-
-        if not flow.value:  # Empty List
-            return
 
         for entry in flow.value:
             fn_delete_entry = functools.partial(
@@ -107,16 +139,17 @@ def task_delete_image(image_id: int, local_session: Callable[[], Session]) -> No
 
         image = flow.value
 
-        if image.image_path:
-            check_response = requests.get(image.image_path)
-            if check_response.status_code == 404:
-                session.delete(image)
-                session.commit()
-                return
+        if not image.image_path:
+            session.delete(image)
+            session.commit()
 
         if not image.image_delete_url:
             session.delete(image)
             session.commit()
+
+        check_response = requests.get(image.image_path)
+        if check_response.status_code == 404:
+            return
 
         # Todo: Only for vgy.me
         with requests_session() as s:
@@ -130,6 +163,9 @@ def task_delete_image(image_id: int, local_session: Callable[[], Session]) -> No
 
             delete_data = {"confirm_delete": "1", "_token": token}
 
-            s.post(image.image_delete_url, json=delete_data)
+            delete_response = s.post(image.image_delete_url, json=delete_data)
+            assert delete_response.ok
 
-        return
+        check_response = requests.get(image.image_path)
+        if check_response.status_code == 404:
+            return
