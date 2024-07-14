@@ -25,12 +25,6 @@ class EntryCRUD:
             return Err(DbNotFoundError(f"Cannot find entry with id {entry_id}"))
         return Ok(result)
 
-    def get_image(self, image_id: int):
-        result: EntryImageDbModel | None = self.db.query(EntryImageDbModel).get(image_id)
-        if result is None:
-            return Err(DbNotFoundError(f"Cannot find entry-image with id {image_id}"))
-        return Ok(result)
-
     def query(self) -> Result[Query[Type[EntryDbModel]], Exception]:
         return Ok(self.db.query(EntryDbModel))
 
