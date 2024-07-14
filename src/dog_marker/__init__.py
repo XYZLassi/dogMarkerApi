@@ -19,7 +19,7 @@ def create_app(config: Config = Config()) -> FastAPI:
 
     app = FastAPI(title="DogMarker - API", lifespan=functools.partial(lifespan, scheduler=scheduler))
 
-    session_local = create_db(app, config)
+    session_local = create_db(config)
 
     register_middlewares(app, config, session_local)
     register_background_tasks(app, config, scheduler, session_local)

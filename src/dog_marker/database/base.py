@@ -1,6 +1,5 @@
 __all__ = ["Base", "create_db"]
 
-from fastapi import FastAPI
 from sqlalchemy import MetaData, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
@@ -19,7 +18,7 @@ metadata = MetaData(naming_convention=convention)
 Base = declarative_base(metadata=metadata)
 
 
-def create_db(app: FastAPI, config: Config) -> sessionmaker[Session]:
+def create_db(config: Config) -> sessionmaker[Session]:
     is_postgres = config.DATABASE_URL.startswith("postgresql")
 
     if is_postgres:
