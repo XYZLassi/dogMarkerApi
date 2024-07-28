@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
 
@@ -9,26 +11,24 @@ from sqlalchemy import (
     Double,
     DateTime,
     func,
-    Boolean,
     CheckConstraint,
     Index,
     Integer,
     ForeignKey,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, Mapped
 
-from dog_marker.database.schemas import WarningLevel
-from ..base import Base
-
+from .hidden_entry import HiddenEntry
 from .mixin.category_mixin import CategoryMixin
+from ..base import Base
 
 
 class EntryImageDbModel(Base):
     __tablename__ = "entry_images"
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    entry_id = Column(ForeignKey("entries.id", ondelete="CASCADE"), nullable=False)
-    entry = relationship("EntryDbModel", back_populates="image_info")
+    entry_id: UUID = Column(ForeignKey("entries.id", ondelete="CASCADE"), nullable=False)
+    entry: Mapped[EntryDbModel] = relationship("EntryDbModel", back_populates="image_infos")
 
     image_path = Column(String, nullable=True)
     image_delete_url = Column(String, nullable=True)
@@ -53,17 +53,24 @@ class EntryDbModel(Base, CategoryMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), index=True, nullable=False)
-    title = Column(String, nullable=False)
-    description = Column(Text, nullable=True)
+    title: str = Column(String, nullable=False)
+    description: str = Column(Text, nullable=True)
 
-    image_info = relationship(
-        "EntryImageDbModel", uselist=False, order_by="desc(EntryImageDbModel.id)", back_populates="entry"
+    mark_to_delete = Column(
+        DateTime(timezone=True),
+    )
+
+    hidden_entries: Mapped[list[HiddenEntry]] = relationship("HiddenEntry", cascade="all,delete")
+
+    image_infos: Mapped[list[EntryImageDbModel]] = relationship(
+        "EntryImageDbModel", order_by="desc(EntryImageDbModel.id)", back_populates="entry"
     )
 
     warning_level = Column(Integer, nullable=False, default=0, server_default="0")
 
     longitude = Column(Double, nullable=False)
     latitude = Column(Double, nullable=False)
+
     create_date = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -79,12 +86,19 @@ class EntryDbModel(Base, CategoryMixin):
     )
 
     @property
+    def is_deleted(self) -> bool:
+        for h_entry in self.hidden_entries:
+            if h_entry.user_id == self.user_id and h_entry.entry_id == self.id:
+                return True
+        return False
+
+    @property
     def image_path(self) -> str | None:
-        return self.image_info.image_path if self.image_info else None
+        return self.image_infos[0].image_path if self.image_infos else None
 
     @property
     def image_delete_url(self) -> str | None:
-        return self.image_info.image_delete_url if self.image_info else None
+        return self.image_infos[0].image_delete_url if self.image_infos else None
 
     @staticmethod  # Todo: Right Methode in sqlalchemey
     def calc_distance(longitude, latitude):

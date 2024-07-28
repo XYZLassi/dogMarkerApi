@@ -61,9 +61,12 @@ async def put_entry(
 
 @router.delete("/{user_id}/entries/{entry_id}", status_code=204, response_class=Response, operation_id="delete_entry")
 async def delete_entry_for_user(
-    user_id: UUID, entry_id: UUID, entry_service: EntryService = Depends(get_service(EntryService))
+    user_id: UUID,
+    entry_id: UUID,
+    permanent: bool = False,
+    entry_service: EntryService = Depends(get_service(EntryService)),
 ) -> None:
-    entry_service.delete(entry_id, user_id)
+    entry_service.delete(entry_id, user_id, permanent=permanent)
 
 
 @router.get("/{user_id}/entries/trash", response_model=list[EntrySchema], operation_id="get_trashed_user_entries")
