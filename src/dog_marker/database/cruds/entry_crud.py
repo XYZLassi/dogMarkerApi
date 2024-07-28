@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, Query
 from sqlalchemy.sql.operators import is_
 
 from ..errors import DbNotFoundError
-from ..models import EntryDbModel, CategoryDbModel, EntryImageDbModel, HiddenEntry
+from ..models import EntryDbModel, CategoryDbModel, EntryImageDbModel, HiddenEntry, EntryCommentDbModel
 from ..schemas import WarningLevel, warning_levels
 from ...dtypes.coordinate import Coordinate, Longitude, Latitude
 from ...dtypes.pagination import Pagination
@@ -260,5 +260,15 @@ class EntryCRUD:
             if older_than is None:
                 return query
             return query.filter(EntryDbModel.update_date <= older_than)
+
+        return __internal
+
+    def create_comment(
+        self,
+        like: bool = False,
+        comment: str | None = None,
+    ):
+        def __internal(model: EntryDbModel) -> EntryCommentDbModel:
+            return
 
         return __internal

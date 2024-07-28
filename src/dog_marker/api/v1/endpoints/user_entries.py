@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Response
 from dog_marker.dtypes.pagination import Pagination
 from dog_marker.database.schemas import warning_levels
 from .dependecies import get_service, query_pagination, authenticate_app
-from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
+from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema, EntryLikeSchema, CreateEntryLikeSchema
 from ..services import EntryService
 
 router = APIRouter(
@@ -84,6 +84,13 @@ async def post_undo_deleted_entry(
     user_id: UUID,
     entry_id: UUID,
     entry_service: EntryService = Depends(get_service(EntryService)),
-) -> Iterable:
+) -> EntrySchema:
     entries = entry_service.undo_deleted_entry(entry_id=entry_id, user_id=user_id)
     return entries
+
+
+@router.post("/{user_id}/entries/like", response_model=EntryLikeSchema, operation_id="like_entry")
+async def post_like_entry(
+    user_id: UUID, body: CreateEntryLikeSchema, entry_service: EntryService = Depends(get_service(EntryService))
+) -> EntryLikeSchema:
+    return entry_service.like_entry(user_id, body)

@@ -13,7 +13,7 @@ from dog_marker.dtypes.coordinate import Coordinate
 from dog_marker.dtypes.pagination import Pagination
 from .. import NotAuthorizedError
 from ..errors import EntityNotFound
-from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema
+from ..schemas import EntrySchema, CreateEntrySchema, UpdateEntrySchema, CreateEntryLikeSchema, EntryLikeSchema
 
 
 # noinspection PyMethodMayBeStatic
@@ -225,6 +225,20 @@ class EntryService:
             entry_crud.get(entry_id)
             .and_then(self.check_is_marked_to_delete())
             .map(entry_crud.undo_delete(user_id))
+            .map(entry_crud.commit())
+            .map(self.map_schema(user_id))
+        )
+
+        if flow.is_err():
+            raise flow.err_value
+
+        return flow.value
+
+    def like_entry(self, user_id: UUID, body: CreateEntryLikeSchema) -> EntryLikeSchema:
+        entry_crud = EntryCRUD(self.db)
+        flow = (
+            entry_crud.get(body.entry_id)
+            .map(entry_crud.create_comment(comment=body.comment, like=True))
             .map(entry_crud.commit())
             .map(self.map_schema(user_id))
         )

@@ -82,7 +82,7 @@ class EntryDbModel(Base, CategoryMixin):
         nullable=False,
         default=datetime.utcnow,
         server_default=func.now(),
-        onupdate=datetime.now,
+        onupdate=datetime.utcnow,
     )
 
     @property
