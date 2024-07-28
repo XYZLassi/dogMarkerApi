@@ -9,7 +9,7 @@ from .endpoints.entries import router as router_entries
 from .endpoints.user_entries import router as router_user_entries
 from .endpoints.categories import router as router_categories
 
-version = "0.2.1"
+version = "0.5.0"
 title = "dogMarker - API v1"
 api_v1 = FastAPI(title=title, version=version)
 
